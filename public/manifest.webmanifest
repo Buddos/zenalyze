@@ -1,0 +1,35 @@
+{
+  "name": "Zenalyze",
+  "short_name": "Zenalyze",
+  "description": "Meditation & Wellness Analytics Platform",
+  "theme_color": "#4A9F8C",
+  "background_color": "#f8faf9",
+  "display": "standalone",
+  "orientation": "portrait",
+  "scope": "/",
+  "start_url": "/",
+  "icons": [
+    {
+      "src": "/vite.svg",
+      "sizes": "48x48 72x72 96x96 128x128 256x256",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["health", "lifestyle", "productivity"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Start Meditation",
+      "short_name": "Meditate",
+      "description": "Begin a meditation session",
+      "url": "/dashboard?start=meditation"
+    },
+    {
+      "name": "Mood Tracker",
+      "short_name": "Mood",
+      "description": "Log your current mood",
+      "url": "/dashboard/mood"
+    }
+  ]
+}

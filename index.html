@@ -14,36 +14,27 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <meta name="theme-color" content="#4A9F8C">
-    <meta name="color-scheme" content="light dark">
 
     <!-- Open Graph / Social Media -->
     <meta property="og:title" content="Zenalyze - Meditation & Wellness Analytics" />
     <meta property="og:description" content="Track your meditation journey, analyze wellness patterns, and achieve mindfulness with Zenalyze" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://zenalyze.app" />
-    <meta property="og:image" content="https://zenalyze.app/og-image.png" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:site_name" content="Zenalyze" />
+    <meta property="og:image" content="/og-image.png" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@zenalyze_app" />
     <meta name="twitter:title" content="Zenalyze - Meditation & Wellness Analytics" />
     <meta name="twitter:description" content="Track your meditation journey, analyze wellness patterns, and achieve mindfulness" />
-    <meta name="twitter:image" content="https://zenalyze.app/twitter-card.png" />
+    <meta name="twitter:image" content="/twitter-card.png" />
 
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/manifest.webmanifest">
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Crimson+Pro:wght@400;500;600&display=swap" rel="stylesheet">
 
-    <!-- Preload critical resources -->
-    <link rel="preload" as="style" href="./src/index.css">
-    
     <!-- Additional meta tags for PWA -->
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -51,38 +42,11 @@
     
     <!-- Mobile specific -->
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="Zenalyze">
     
-    <!-- Security headers (simulated via meta tags) -->
+    <!-- Security headers (removed X-Frame-Options from meta tags) -->
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:;">
     <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-Frame-Options" content="DENY">
     <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-    
-    <!-- Performance hints -->
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    
-    <!-- Structured Data for SEO -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebApplication",
-      "name": "Zenalyze",
-      "description": "Meditation and wellness analytics platform",
-      "url": "https://zenalyze.app",
-      "applicationCategory": "HealthApplication",
-      "operatingSystem": "Web",
-      "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "USD"
-      },
-      "author": {
-        "@type": "Organization",
-        "name": "Zenalyze"
-      }
-    }
-    </script>
   </head>
 
   <body class="antialiased">
@@ -143,16 +107,5 @@
     </style>
 
     <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Register service worker for PWA -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/sw.js').catch(error => {
-            console.log('ServiceWorker registration failed: ', error);
-          });
-        });
-      }
-    </script>
   </body>
 </html>
