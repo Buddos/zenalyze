@@ -1,0 +1,267 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Mood Tracker - Zenalyze{% endblock %}
+{% block topbar_title %}Mood Tracker{% endblock %}
+{% block topbar_subtitle %}Check in with your emotions, stress, and internal energy{% endblock %}
+
+{% block extra_css %}
+<style>
+    .mood-slider-container {
+        text-align: center;
+        padding: 25px 20px;
+        background: var(--bg-primary);
+        border-radius: 20px;
+        margin-bottom: 25px;
+    }
+    .mood-emoji-preview {
+        font-size: 4.5rem;
+        line-height: 1;
+        margin-bottom: 10px;
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .mood-score-label {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #667eea;
+        margin-bottom: 15px;
+    }
+    .mood-range-slider {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        accent-color: #667eea;
+        height: 10px;
+    }
+
+    .emotion-btn {
+        padding: 8px 16px;
+        border-radius: 50px;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-primary);
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .emotion-btn:hover, .emotion-btn.active {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-color: transparent;
+        transform: translateY(-2px);
+    }
+
+    .factor-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 14px;
+        border-radius: 50px;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        font-size: 0.82rem;
+        cursor: pointer;
+        transition: all 0.2s;
+        margin: 4px;
+    }
+    .factor-chip.active {
+        background: rgba(16, 185, 129, 0.15);
+        border-color: #10b981;
+        color: #065f46;
+        font-weight: 600;
+    }
+
+    .history-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 1.25rem;
+        border: 1px solid var(--border-color);
+        margin-bottom: 1rem;
+        transition: all 0.2s;
+    }
+    .history-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid">
+    <div class="row g-4">
+        <!-- Logger Form -->
+        <div class="col-lg-7">
+            <div class="card p-4 p-md-5 rounded-4 border shadow-sm" style="background: var(--card-bg);">
+                <h4 class="fw-bold mb-4" style="color: var(--text-primary);">
+                    <i class="bi bi-emoji-smile text-primary me-2"></i> How are you feeling right now?
+                </h4>
+
+                <form method="POST" id="moodForm">
+                    {% csrf_token %}
+                    <!-- Interactive Slider & Emoji Preview -->
+                    <div class="mood-slider-container border">
+                        <div class="mood-emoji-preview" id="emojiPreview">🙂</div>
+                        <div class="mood-score-label" id="scoreLabel">6 / 10 • Okay</div>
+                        <input type="range" class="form-range mood-range-slider" min="1" max="10" value="6" id="moodScore" name="mood_score" oninput="updateMoodUI(this.value)">
+                        <div class="d-flex justify-content-between max-w-500 mx-auto px-2 text-muted small mt-2" style="max-width: 500px;">
+                            <span>😢 Struggling (1)</span>
+                            <span>😐 Neutral (5)</span>
+                            <span>🤩 Thriving (10)</span>
+                        </div>
+                    </div>
+
+                    <!-- Primary Emotion Buttons -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small">Primary Emotion</label>
+                        <input type="hidden" name="primary_emotion" id="primaryEmotion" value="Okay">
+                        <div class="d-flex flex-wrap gap-2" id="emotionsContainer">
+                            <button type="button" class="emotion-btn active" onclick="selectEmotion('Okay', '🙂', this)">🙂 Okay</button>
+                            <button type="button" class="emotion-btn" onclick="selectEmotion('Happy', '😊', this)">😊 Happy</button>
+                            <button type="button" class="emotion-btn" onclick="selectEmotion('Calm', '😌', this)">😌 Calm</button>
+                            <button type="button" class="emotion-btn" onclick="selectEmotion('Grateful', '🙏', this)">🙏 Grateful</button>
+                            <button type="button" class="emotion-btn" onclick="selectEmotion('Motivated', '💪', this)">💪 Motivated</button>
+                            <button type="button" class="emotion-btn" onclick="selectEmotion('Tired', '😴', this)">😴 Tired</button>
+                            <button type="button" class="emotion-btn" onclick="selectEmotion('Anxious', '😰', this)">😰 Anxious</button>
+                            <button type="button" class="emotion-btn" onclick="selectEmotion('Stressed', '😫', this)">😫 Stressed</button>
+                            <button type="button" class="emotion-btn" onclick="selectEmotion('Sad', '😢', this)">😢 Sad</button>
+                        </div>
+                    </div>
+
+                    <!-- Secondary Emotion -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small">Secondary Nuance (Optional)</label>
+                        <input type="text" class="form-control rounded-3" name="secondary_emotion" placeholder="e.g. Relieved, Nostalgic, Hopeful, Overwhelmed">
+                    </div>
+
+                    <!-- Stress & Energy Sliders -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small d-flex justify-content-between">
+                                <span>Stress Level</span>
+                                <span class="text-primary fw-bold" id="stressVal">5/10</span>
+                            </label>
+                            <input type="range" class="form-range" min="1" max="10" value="5" name="stress_level" oninput="document.getElementById('stressVal').innerText = this.value + '/10'">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold small d-flex justify-content-between">
+                                <span>Energy Level</span>
+                                <span class="text-success fw-bold" id="energyVal">5/10</span>
+                            </label>
+                            <input type="range" class="form-range" min="1" max="10" value="5" name="energy_level" oninput="document.getElementById('energyVal').innerText = this.value + '/10'">
+                        </div>
+                    </div>
+
+                    <!-- Factors / Triggers Chips -->
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small">Factors & Influences</label>
+                        <input type="hidden" name="triggers_factors" id="factorsInput">
+                        <div>
+                            <span class="factor-chip" onclick="toggleFactor('Work', this)">💼 Work</span>
+                            <span class="factor-chip" onclick="toggleFactor('Sleep', this)">🌙 Sleep</span>
+                            <span class="factor-chip" onclick="toggleFactor('Exercise', this)">🏃 Exercise</span>
+                            <span class="factor-chip" onclick="toggleFactor('Nutrition', this)">🥗 Nutrition</span>
+                            <span class="factor-chip" onclick="toggleFactor('Family', this)">👨‍👩‍👧 Family</span>
+                            <span class="factor-chip" onclick="toggleFactor('Relationships', this)">❤️ Friends</span>
+                            <span class="factor-chip" onclick="toggleFactor('Finances', this)">💰 Finances</span>
+                            <span class="factor-chip" onclick="toggleFactor('Weather', this)">☀️ Weather</span>
+                        </div>
+                    </div>
+
+                    <!-- Gratitude & Quick Note -->
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">One Thing I am Grateful for Today</label>
+                        <input type="text" class="form-control rounded-3" name="gratitude" placeholder="e.g. Warm cup of tea, a kind text message...">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold small">Personal Note</label>
+                        <textarea class="form-control rounded-3" name="journal_entry" rows="3" placeholder="What is on your mind right now?"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100 rounded-pill fw-bold">
+                        <i class="bi bi-check-circle-fill me-2"></i> Save Mood Log
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Recent Logs Sidebar -->
+        <div class="col-lg-5">
+            <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold mb-0" style="color: var(--text-primary);"><i class="bi bi-clock-history me-2 text-primary"></i> Recent Check-ins</h5>
+                    <a href="{% url 'wellness:history' %}" class="small text-primary text-decoration-none fw-bold">View All →</a>
+                </div>
+
+                {% if recent_entries %}
+                {% for entry in recent_entries %}
+                <div class="history-card">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="fs-4">{{ entry.emoji }}</span>
+                            <div>
+                                <span class="fw-bold" style="color: var(--text-primary);">{{ entry.mood_score }}/10 • {{ entry.primary_emotion|default:"Check-in" }}</span>
+                                {% if entry.secondary_emotion %}<span class="badge bg-secondary bg-opacity-10 text-secondary ms-1">{{ entry.secondary_emotion }}</span>{% endif %}
+                            </div>
+                        </div>
+                        <span class="small text-muted">{{ entry.created_at|date:"M d, g:i A" }}</span>
+                    </div>
+                    {% if entry.triggers_factors %}
+                    <div class="small text-muted mb-1"><i class="bi bi-tags me-1"></i> {{ entry.triggers_factors }}</div>
+                    {% endif %}
+                    {% if entry.journal_entry %}
+                    <div class="small text-secondary fst-italic mt-2 p-2 rounded bg-light bg-opacity-50">"{{ entry.journal_entry|truncatewords:20 }}"</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                {% else %}
+                <div class="text-center py-5 text-muted small">
+                    <i class="bi bi-emoji-neutral fs-2 d-block mb-2"></i>
+                    No mood entries logged yet. Slide above to log your first one!
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const scoreEmojis = {
+        1: { emoji: '😢', text: 'Struggling' },
+        2: { emoji: '😫', text: 'Very Low' },
+        3: { emoji: '😔', text: 'Down' },
+        4: { emoji: '😕', text: 'Unsettled' },
+        5: { emoji: '😐', text: 'Neutral' },
+        6: { emoji: '🙂', text: 'Okay' },
+        7: { emoji: '😊', text: 'Good' },
+        8: { emoji: '😄', text: 'Happy' },
+        9: { emoji: '🤩', text: 'Energized' },
+        10: { emoji: '✨', text: 'Thriving' }
+    };
+
+    function updateMoodUI(val) {
+        val = parseInt(val);
+        const data = scoreEmojis[val] || scoreEmojis[5];
+        document.getElementById('emojiPreview').innerText = data.emoji;
+        document.getElementById('scoreLabel').innerText = `${val} / 10 • ${data.text}`;
+    }
+
+    function selectEmotion(name, emoji, btn) {
+        document.querySelectorAll('.emotion-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('primaryEmotion').value = name;
+        document.getElementById('emojiPreview').innerText = emoji;
+    }
+
+    let selectedFactors = [];
+    function toggleFactor(name, el) {
+        el.classList.toggle('active');
+        if (selectedFactors.includes(name)) {
+            selectedFactors = selectedFactors.filter(f => f !== name);
+        } else {
+            selectedFactors.push(name);
+        }
+        document.getElementById('factorsInput').value = selectedFactors.join(', ');
+    }
+</script>
+{% endblock %}

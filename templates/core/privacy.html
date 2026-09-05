@@ -1,0 +1,28 @@
+{% extends 'base_public.html' %}
+{% load static %}
+
+{% block title %}Privacy Policy - Zenalyze{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-9 bg-white p-4 p-md-5 rounded-4 border shadow-sm">
+            <h1 class="fw-bold mb-4">Privacy Policy</h1>
+            <p class="text-muted small mb-4">Last Updated: September 2026</p>
+
+            <div class="alert alert-info small">
+                <strong><i class="bi bi-shield-check me-1"></i> Core Privacy Commitment:</strong> Your mental health and personal reflections are profoundly private. We strictly do not sell, license, or market your personal wellness data to any third party.
+            </div>
+
+            <h4 class="fw-bold mt-4 mb-3">1. Information We Collect</h4>
+            <p class="text-muted small">We collect the information you choose to enter into the platform, including account credentials (username, email), mood ratings, journal reflections, exercise completions, and optional profile data.</p>
+
+            <h4 class="fw-bold mt-4 mb-3">2. How Your Information Is Protected</h4>
+            <p class="text-muted small">All data in transit is encrypted using modern TLS encryption protocols. Private journal entries and personal mood notes are restricted to your authenticated user account.</p>
+
+            <h4 class="fw-bold mt-4 mb-3">3. Data Deletion Rights</h4>
+            <p class="text-muted small">You retain full ownership of your data. You may request the export or permanent deletion of your account and all associated wellness records at any time from your settings panel.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

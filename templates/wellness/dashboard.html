@@ -1,0 +1,375 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Zenalyze{% endblock %}
+{% block topbar_title %}Wellness Overview{% endblock %}
+{% block topbar_subtitle %}Good {{ greeting }} {{ greeting_icon }}, {{ user.display_title }}!{% endblock %}
+
+{% block extra_css %}
+<style>
+    .welcome-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 20px;
+        padding: 1.85rem 2rem;
+        color: white;
+        margin-bottom: 1.5rem;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 10px 30px rgba(102,126,234,0.25);
+    }
+    .welcome-card::before {
+        content: '';
+        position: absolute;
+        top: -40%;
+        right: -25%;
+        width: 320px;
+        height: 320px;
+        background: radial-gradient(circle, rgba(255,255,255,0.12) 0%, transparent 70%);
+        border-radius: 50%;
+    }
+    .welcome-title { font-size: 1.6rem; font-weight: 700; margin-bottom: 0.4rem; position: relative; }
+    .welcome-text { opacity: 0.9; margin-bottom: 1.2rem; font-size: 0.92rem; max-width: 480px; position: relative; }
+    .welcome-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: rgba(255,255,255,0.22);
+        padding: 0.55rem 1.25rem;
+        border-radius: 50px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: white;
+        text-decoration: none;
+        backdrop-filter: blur(5px);
+        transition: all 0.25s;
+    }
+    .welcome-badge:hover { background: rgba(255,255,255,0.35); color: white; transform: translateY(-2px); }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .stat-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+        transition: all 0.25s;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+    .stat-icon-mini {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.35rem;
+        flex-shrink: 0;
+    }
+    .stat-value { font-size: 1.45rem; font-weight: 700; color: var(--text-primary); line-height: 1.1; }
+    .stat-label { font-size: 0.76rem; color: var(--text-secondary); font-weight: 500; margin-top: 3px; }
+
+    .charts-row {
+        display: grid;
+        grid-template-columns: 1.5fr 1fr;
+        gap: 1.25rem;
+        margin-bottom: 1.5rem;
+    }
+    .chart-card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+        transition: background 0.3s;
+    }
+    .chart-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.25rem;
+    }
+    .chart-card-title { font-weight: 700; font-size: 0.95rem; color: var(--text-primary); }
+    .chart-container { height: 260px; position: relative; }
+
+    .side-cards { display: flex; flex-direction: column; gap: 1.25rem; }
+    .quote-card-mini {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        border-radius: 16px;
+        padding: 1.35rem;
+        color: white;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 5px 20px rgba(102,126,234,0.2);
+    }
+    .quote-card-mini i { position: absolute; top: 10px; right: 12px; font-size: 3.5rem; opacity: 0.12; }
+    .quote-text-mini { font-size: 0.88rem; font-style: italic; line-height: 1.5; position: relative; z-index: 1; margin-bottom: 0.6rem; }
+    .quote-author-mini { font-size: 0.75rem; opacity: 0.9; text-align: right; position: relative; z-index: 1; font-weight: 600; }
+
+    .activity-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 1.35rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--border-color);
+        flex: 1;
+    }
+    .activity-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.9rem;
+    }
+    .activity-card-title { font-weight: 700; font-size: 0.92rem; color: var(--text-primary); }
+    .activity-list { list-style: none; padding: 0; margin: 0; }
+    .activity-item {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.65rem 0;
+        border-bottom: 1px solid var(--border-color);
+        font-size: 0.82rem;
+    }
+    .activity-item:last-child { border-bottom: none; }
+    .activity-dot {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.8rem;
+        flex-shrink: 0;
+    }
+    .activity-dot.mood { background: rgba(102,126,234,0.12); color: #667eea; }
+    .activity-dot.exercise { background: rgba(16,185,129,0.12); color: #10b981; }
+    .activity-dot.community { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .activity-content { flex: 1; min-width: 0; }
+    .activity-title { font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .activity-time { font-size: 0.7rem; color: var(--text-secondary); margin-top: 2px; }
+
+    .crisis-card {
+        background: var(--danger-bg);
+        border-radius: 16px;
+        padding: 1.15rem 1.35rem;
+        border: 1px solid var(--danger-border);
+    }
+    .crisis-card h6 { color: var(--danger-text); font-weight: 700; font-size: 0.88rem; margin-bottom: 0.4rem; }
+    .crisis-card p { color: var(--text-secondary); font-size: 0.8rem; margin-bottom: 0.8rem; }
+    .crisis-card .btn-danger-sm {
+        background: #ef4444;
+        color: white;
+        border: none;
+        padding: 0.45rem 1.15rem;
+        border-radius: 50px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.25s;
+    }
+    .crisis-card .btn-danger-sm:hover { background: #dc2626; color: white; transform: translateY(-2px); }
+
+    @media (max-width: 1200px) {
+        .stats-grid { grid-template-columns: repeat(2, 1fr); }
+        .charts-row { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+        .stats-grid { grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+        .stat-card { padding: 0.85rem; }
+        .stat-value { font-size: 1.2rem; }
+        .welcome-card { padding: 1.25rem; }
+        .welcome-title { font-size: 1.25rem; }
+        .welcome-text { display: none; }
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<!-- Welcome Hero Card -->
+<div class="welcome-card">
+    <h2 class="welcome-title">Good {{ greeting }} {{ greeting_icon }}, {{ user.display_title }}!</h2>
+    <p class="welcome-text">Take a gentle moment to check in with yourself. How are you feeling right now?</p>
+    <a href="{% url 'wellness:mood_log' %}" class="welcome-badge">
+        <i class="bi bi-plus-circle-fill"></i> Log Your Mood <i class="bi bi-arrow-right-short"></i>
+    </a>
+</div>
+
+<!-- 4 Key Stat Cards -->
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon-mini" style="background:rgba(102,126,234,0.1);color:#667eea;">
+            <i class="bi bi-emoji-smile"></i>
+        </div>
+        <div>
+            <div class="stat-value">{% if today_mood %}{{ today_mood.mood_score }}{% else %}--{% endif %}/10</div>
+            <div class="stat-label">Today's Mood</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon-mini" style="background:rgba(16,185,129,0.1);color:#10b981;">
+            <i class="bi bi-heart-pulse"></i>
+        </div>
+        <div>
+            <div class="stat-value">{{ wellness_score }}%</div>
+            <div class="stat-label">Wellness Score</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon-mini" style="background:rgba(245,158,11,0.1);color:#f59e0b;">
+            <i class="bi bi-fire"></i>
+        </div>
+        <div>
+            <div class="stat-value">{{ streak }}</div>
+            <div class="stat-label">Day Streak</div>
+        </div>
+    </div>
+    
+    <div class="stat-card">
+        <div class="stat-icon-mini" style="background:rgba(59,130,246,0.1);color:#3b82f6;">
+            <i class="bi bi-people"></i>
+        </div>
+        <div>
+            <div class="stat-value">{{ active_users }}</div>
+            <div class="stat-label">Active Users</div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts & Activity Row -->
+<div class="charts-row">
+    <!-- Chart Card -->
+    <div class="chart-card">
+        <div class="chart-card-header">
+            <span class="chart-card-title">
+                <i class="bi bi-graph-up text-primary me-2"></i>Weekly Mood Trend
+            </span>
+            <a href="{% url 'wellness:history' %}" style="font-size:0.75rem;color:var(--link-color);text-decoration:none;font-weight:600;">
+                Full Timeline →
+            </a>
+        </div>
+        <div class="chart-container">
+            <canvas id="moodChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Side Mini Cards -->
+    <div class="side-cards">
+        <!-- Daily Quote Card -->
+        {% if daily_quote %}
+        <div class="quote-card-mini">
+            <i class="bi bi-quote"></i>
+            <div class="quote-text-mini">"{{ daily_quote.quote_text }}"</div>
+            <div class="quote-author-mini">— {{ daily_quote.author|default:"Unknown" }}</div>
+        </div>
+        {% endif %}
+
+        <!-- Recent Activity Feed -->
+        <div class="activity-card">
+            <div class="activity-card-header">
+                <span class="activity-card-title">
+                    <i class="bi bi-clock-history me-2"></i>Recent Activity
+                </span>
+            </div>
+            {% if recent_activities %}
+            <ul class="activity-list">
+                {% for act in recent_activities %}
+                <li class="activity-item">
+                    <div class="activity-dot {{ act.type }}">
+                        {% if act.type == 'mood' %}
+                        <i class="bi bi-emoji-smile"></i>
+                        {% elif act.type == 'exercise' %}
+                        <i class="bi bi-wind"></i>
+                        {% else %}
+                        <i class="bi bi-people"></i>
+                        {% endif %}
+                    </div>
+                    <div class="activity-content">
+                        <div class="activity-title">{{ act.title }}</div>
+                        <div class="activity-time">{{ act.created_at|timesince }} ago</div>
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="p-3 text-center text-muted small">No activities logged yet. Start by tracking your mood!</div>
+            {% endif %}
+        </div>
+
+        <!-- Crisis Helpline Widget -->
+        <div class="crisis-card">
+            <h6><i class="bi bi-exclamation-triangle-fill me-1"></i> Need immediate support?</h6>
+            <p>Confidential, free crisis counselors are standing by 24/7.</p>
+            <a href="{% url 'wellness:crisis_help' %}" class="btn-danger-sm">
+                <i class="bi bi-telephone-fill"></i> Crisis Help Resources
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const ctx = document.getElementById('moodChart')?.getContext('2d');
+        if (ctx) {
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [{% for item in weekly_mood %}'{{ item.day_name }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    datasets: [{
+                        label: 'Mood Level',
+                        data: [{% for item in weekly_mood %}{{ item.avg_mood }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.08)',
+                        tension: 0.4,
+                        fill: true,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#ffffff',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Mood: ' + context.parsed.y + '/10';
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 10,
+                            grid: { color: 'rgba(148, 163, 184, 0.12)' },
+                            ticks: { font: { size: 11 } }
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { font: { size: 11 } }
+                        }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

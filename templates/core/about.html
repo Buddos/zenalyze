@@ -1,0 +1,81 @@
+{% extends 'base_public.html' %}
+{% load static %}
+
+{% block title %}About Us - Zenalyze{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center text-center mb-5">
+        <div class="col-lg-8">
+            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill fw-bold mb-3">Our Mission & Heart</span>
+            <h1 class="fw-bold display-5 mb-3">Empowering Peace in a Chaotic World</h1>
+            <p class="lead text-muted">
+                Zenalyze was born out of a simple, profound conviction: that mental wellness tools should be calm, accessible, judgment-free, and respectful of your privacy.
+            </p>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="p-4 rounded-4 bg-white border h-100 shadow-sm">
+                <div class="rounded-3 p-3 d-inline-block bg-primary bg-opacity-10 text-primary fs-3 mb-3">
+                    <i class="bi bi-heart-pulse-fill"></i>
+                </div>
+                <h4 class="fw-bold mb-2">Holistic Health</h4>
+                <p class="text-muted small">
+                    We recognize that emotional wellness intersects deeply with physical breath, daily stress, relationships, and financial peace.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 rounded-4 bg-white border h-100 shadow-sm">
+                <div class="rounded-3 p-3 d-inline-block bg-success bg-opacity-10 text-success fs-3 mb-3">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <h4 class="fw-bold mb-2">Privacy Without Compromise</h4>
+                <p class="text-muted small">
+                    Your feelings, thoughts, journals, and reflections belong solely to you. We do not sell data or monetize vulnerability.
+                </p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="p-4 rounded-4 bg-white border h-100 shadow-sm">
+                <div class="rounded-3 p-3 d-inline-block bg-info bg-opacity-10 text-info fs-3 mb-3">
+                    <i class="bi bi-people-fill"></i>
+                </div>
+                <h4 class="fw-bold mb-2">Human Compassion</h4>
+                <p class="text-muted small">
+                    Combining evidence-based psychological tools like CBT and MBSR with compassionate community and licensed therapist access.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Team Section -->
+    <div class="py-4">
+        <div class="text-center mb-5">
+            <h2 class="fw-bold">Meet the Zenalyze Team</h2>
+            <p class="text-muted">Dedicated practitioners, technologists, and advocates guiding our vision.</p>
+        </div>
+        <div class="row g-4 justify-content-center">
+            {% for member in team_members %}
+            <div class="col-md-4">
+                <div class="p-4 rounded-4 bg-white border text-center shadow-sm h-100">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center bg-primary bg-opacity-10 text-primary fw-bold fs-3 mb-3" style="width: 75px; height: 75px;">
+                        {{ member.initials|default:member.full_name|slice:":2"|upper }}
+                    </div>
+                    <h5 class="fw-bold mb-1">{{ member.full_name }}</h5>
+                    <div class="text-primary small fw-semibold mb-3">{{ member.role }}</div>
+                    <p class="text-muted small mb-3">{{ member.bio }}</p>
+                    <div class="d-flex justify-content-center gap-2">
+                        {% if member.linkedin %}<a href="{{ member.linkedin }}" target="_blank" class="text-secondary"><i class="bi bi-linkedin"></i></a>{% endif %}
+                        {% if member.twitter %}<a href="{{ member.twitter }}" target="_blank" class="text-secondary"><i class="bi bi-twitter"></i></a>{% endif %}
+                        {% if member.github %}<a href="{{ member.github }}" target="_blank" class="text-secondary"><i class="bi bi-github"></i></a>{% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

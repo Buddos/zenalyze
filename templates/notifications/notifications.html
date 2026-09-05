@@ -1,0 +1,168 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Notifications & Reminders - Zenalyze{% endblock %}
+{% block page_title %}Notifications & Reminders{% endblock %}
+{% block page_subtitle %}Stay on track with your daily check-ins, achievements, and wellness routines{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notif-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.02);
+        margin-bottom: 2rem;
+    }
+    .notif-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1.25rem;
+        padding: 1.25rem;
+        border-radius: 16px;
+        margin-bottom: 0.75rem;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        transition: background 0.2s;
+    }
+    .notif-item.unread {
+        background: rgba(102, 126, 234, 0.05);
+        border-color: rgba(102, 126, 234, 0.3);
+    }
+    .notif-icon-circle {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    .reminder-pill-card {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="notif-card">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h5 class="fw-bold mb-0"><i class="bi bi-bell me-2 text-primary"></i> Activity & Alerts</h5>
+                <form method="POST" action="{% url 'notifications:mark_all_read' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm btn-outline-primary" style="border-radius: 10px;">
+                        <i class="bi bi-check2-all me-1"></i> Mark All as Read
+                    </button>
+                </form>
+            </div>
+
+            {% for notif in notifications %}
+            <div class="notif-item {% if not notif.is_read %}unread{% endif %}">
+                <div class="notif-icon-circle">
+                    <i class="bi {{ notif.icon_class }}"></i>
+                </div>
+                <div class="flex-grow-1">
+                    <div class="d-flex justify-content-between align-items-baseline mb-1">
+                        <h6 class="fw-bold mb-0 text-primary">{{ notif.title }}</h6>
+                        <span class="text-secondary small">{{ notif.created_at|timesince }} ago</span>
+                    </div>
+                    <p class="text-secondary small mb-2">{{ notif.message }}</p>
+                    <div class="d-flex gap-2">
+                        {% if notif.link %}
+                        <a href="{{ notif.link }}" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem; border-radius: 6px;">View</a>
+                        {% endif %}
+                        {% if not notif.is_read %}
+                        <form method="POST" action="{% url 'notifications:mark_read' notif.id %}">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-link text-secondary p-0 text-decoration-none" style="font-size: 0.75rem;">
+                                Mark as Read
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-5 text-secondary">
+                <i class="bi bi-bell-slash fs-1 mb-2 d-block text-muted"></i>
+                <p>You're completely caught up! No notifications right now.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Right Column: Habit Reminders -->
+    <div class="col-lg-4">
+        <div class="notif-card">
+            <h5 class="fw-bold mb-3"><i class="bi bi-alarm me-2 text-primary"></i> Routine Reminders</h5>
+            <p class="text-secondary small mb-4">Set automatic prompts to check in, reflect, or practice mindfulness.</p>
+
+            {% for reminder in reminders %}
+            <div class="reminder-pill-card">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="fw-bold text-primary">{{ reminder.title }}</span>
+                    <span class="badge bg-success bg-opacity-10 text-success small">Active</span>
+                </div>
+                <div class="text-secondary small">
+                    <i class="bi bi-clock me-1"></i> {{ reminder.reminder_time|default:"Daily" }}
+                </div>
+            </div>
+            {% empty %}
+            <p class="text-secondary small">No active daily reminders configured yet.</p>
+            {% endfor %}
+
+            <button class="btn btn-primary w-100 mt-2" data-bs-toggle="modal" data-bs-target="#newReminderModal" style="border-radius: 12px; padding: 0.65rem;">
+                <i class="bi bi-plus-lg me-1"></i> Add Custom Reminder
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: New Reminder -->
+<div class="modal fade" id="newReminderModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Set Wellness Reminder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'notifications:add_reminder' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Reminder Name</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Evening Reflection" required style="border-radius: 12px;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Habit Type</label>
+                        <select name="reminder_type" class="form-select" style="border-radius: 12px;">
+                            <option value="mood">Mood Check-in</option>
+                            <option value="journal">Daily Journaling</option>
+                            <option value="meditation">Meditation & Breathing</option>
+                            <option value="water">Drink Water</option>
+                            <option value="custom">Other Custom Prompt</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Time of Day</label>
+                        <input type="time" name="reminder_time" class="form-control" required style="border-radius: 12px;">
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 12px;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="border-radius: 12px;">Save Reminder</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends "administration/admin_base.html" %}
+
+{% block title %}User Management - Zenalyze Admin{% endblock %}
+{% block page_title %}User Account Management{% endblock %}
+{% block page_subtitle %}Search, audit, update roles, and manage active platform accounts{% endblock %}
+
+{% block content %}
+<div class="card p-4 border-0 shadow-sm" style="background: var(--card-bg); border-radius: 20px;">
+    <!-- Filter Bar -->
+    <form method="GET" class="row g-3 align-items-center mb-4">
+        <div class="col-md-6">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-0"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" value="{{ query|default:'' }}" class="form-control bg-light border-0" placeholder="Search by username or email..." style="border-radius: 0 12px 12px 0;">
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select name="role" class="form-select bg-light border-0" style="border-radius: 12px;">
+                <option value="">All Account Roles</option>
+                <option value="user" {% if role_filter == 'user' %}selected{% endif %}>User</option>
+                <option value="admin" {% if role_filter == 'admin' %}selected{% endif %}>Admin</option>
+                <option value="therapist" {% if role_filter == 'therapist' %}selected{% endif %}>Therapist</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100" style="border-radius: 12px;">Filter</button>
+        </div>
+    </form>
+
+    <!-- Users Table -->
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr class="small text-secondary">
+                    <th>Username</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Streak</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td class="fw-semibold">{{ u.username }}</td>
+                    <td>{{ u.full_name|default:"—" }}</td>
+                    <td class="small text-secondary">{{ u.email }}</td>
+                    <td>
+                        <span class="badge {% if u.role == 'admin' %}bg-danger{% elif u.role == 'therapist' %}bg-info{% else %}bg-primary{% endif %} bg-opacity-10 text-{% if u.role == 'admin' %}danger{% elif u.role == 'therapist' %}info{% else %}primary{% endif %}">
+                            {{ u.role|title }}
+                        </span>
+                    </td>
+                    <td><span class="badge bg-light text-dark">{{ u.streak_days }} days</span></td>
+                    <td>
+                        {% if u.is_active %}
+                        <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                        {% else %}
+                        <span class="badge bg-secondary bg-opacity-10 text-secondary">Suspended</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <form method="POST" action="{% url 'administration:toggle_user_status' u.id %}" class="d-inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" style="border-radius: 8px; font-size: 0.75rem;">
+                                {% if u.is_active %}Deactivate{% else %}Activate{% endif %}
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="text-center py-4 text-secondary">No users found matching query</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

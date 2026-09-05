@@ -1,0 +1,296 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}365 Daily Motivations - Zenalyze{% endblock %}
+{% block page_title %}Daily Motivations{% endblock %}
+{% block page_subtitle %}A unique inspiration for every day of the year{% endblock %}
+
+{% block extra_css %}
+<style>
+    .hero-banner {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.12));
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 2rem 2.5rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-banner::after {
+        content: '✨';
+        position: absolute;
+        right: 2rem;
+        bottom: 1rem;
+        font-size: 5rem;
+        opacity: 0.15;
+        pointer-events: none;
+    }
+    .hero-banner h1 {
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .counter-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        padding: 0.4rem 0.9rem;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: #667eea;
+        margin-top: 1rem;
+    }
+    .daily-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 2.5rem 2rem;
+        margin-bottom: 2rem;
+        text-align: center;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        position: relative;
+    }
+    .daily-card .streak-badge {
+        position: absolute;
+        top: 1.25rem;
+        right: 1.25rem;
+        background: rgba(239, 68, 68, 0.1);
+        color: #ef4444;
+        border: 1px solid rgba(239, 68, 68, 0.2);
+        padding: 0.35rem 0.85rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+    .type-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.35rem 0.9rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 1.5rem;
+    }
+    .quote-text {
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 1.6rem;
+        line-height: 1.6;
+        font-style: italic;
+        color: var(--text-primary);
+        max-width: 800px;
+        margin: 0 auto 2rem auto;
+    }
+    .btn-complete {
+        background: linear-gradient(135deg, #10b981, #059669);
+        color: white;
+        border: none;
+        padding: 0.75rem 2rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .btn-complete:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+        color: white;
+    }
+    .btn-done {
+        background: rgba(16, 185, 129, 0.12);
+        color: #10b981;
+        border: 1px solid rgba(16, 185, 129, 0.25);
+        padding: 0.75rem 2rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: default;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .stats-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    .stat-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.25rem;
+        text-align: center;
+    }
+    .stat-item-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #667eea;
+        margin-bottom: 0.25rem;
+    }
+    .stat-item-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 600;
+        letter-spacing: 0.05em;
+    }
+    .history-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 1.75rem;
+    }
+    .history-card .card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin-bottom: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-primary);
+    }
+    .history-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.85rem 0;
+        border-bottom: 1px solid var(--border-color);
+        gap: 1rem;
+    }
+    .history-item:last-child {
+        border-bottom: none;
+    }
+    .badge-done {
+        padding: 0.25rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+    .badge-pending {
+        padding: 0.25rem 0.6rem;
+        border-radius: 12px;
+        font-size: 0.7rem;
+        font-weight: 600;
+        background: var(--hover-bg);
+        color: var(--text-secondary);
+    }
+    @media (max-width: 768px) {
+        .stats-row {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        .quote-text {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero-banner">
+    <h1><i class="bi bi-stars text-warning"></i> 365 Days of Motivation</h1>
+    <p class="text-secondary mb-0">A hand-picked affirmation, mindful reflection, or wellness tip for each day of your journey.</p>
+    <div class="counter-badge">
+        <i class="bi bi-calendar-check"></i> Day {{ shown_count|default:1 }} of 365
+    </div>
+</div>
+
+{% if request.GET.done %}
+<div class="alert alert-success d-flex align-items-center mb-4" style="border-radius: 16px;">
+    <i class="bi bi-check-circle-fill fs-4 me-3"></i>
+    <div>
+        <strong>Awesome job!</strong> You've reflected on today's motivation and earned your streak points.
+    </div>
+</div>
+{% endif %}
+
+{% if today_motivation %}
+<div class="daily-card">
+    {% if streak > 0 %}
+    <div class="streak-badge">
+        <i class="bi bi-fire"></i> {{ streak }} Day Streak
+    </div>
+    {% endif %}
+
+    <div class="type-badge" style="background: rgba(102, 126, 234, 0.1); color: #667eea;">
+        <i class="bi bi-lightning-charge-fill"></i>
+        {{ today_motivation.motivation_type|default:"Affirmation" }} of the Day
+    </div>
+
+    <div class="quote-text">
+        "{{ today_motivation.text }}"
+    </div>
+
+    {% if today_motivation.is_completed %}
+    <div>
+        <button class="btn-done"><i class="bi bi-check-circle-fill"></i> Completed for Today</button>
+        <div class="text-secondary small mt-3">Come back tomorrow for your next daily affirmation!</div>
+    </div>
+    {% else %}
+    <form method="POST" action="{% url 'wellness:complete_motivation' today_motivation.id %}">
+        {% csrf_token %}
+        <button type="submit" class="btn-complete">
+            <i class="bi bi-check-circle"></i> I've Reflected on This
+        </button>
+    </form>
+    {% endif %}
+</div>
+{% endif %}
+
+<div class="stats-row">
+    <div class="stat-item">
+        <div class="stat-item-value">{{ total_shown|default:0 }}</div>
+        <div class="stat-item-label">Days Viewed</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-item-value">{{ completed_count|default:0 }}</div>
+        <div class="stat-item-label">Completed</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-item-value">{{ streak|default:0 }} 🔥</div>
+        <div class="stat-item-label">Current Streak</div>
+    </div>
+    <div class="stat-item">
+        <div class="stat-item-value">{{ remaining_count|default:365 }}</div>
+        <div class="stat-item-label">Days Left</div>
+    </div>
+</div>
+
+<div class="history-card">
+    <div class="card-title">
+        <i class="bi bi-clock-history"></i> Recent Motivations History
+    </div>
+    {% for item in history %}
+    <div class="history-item">
+        <span class="text-secondary small" style="min-width: 75px;">{{ item.created_at|date:"M d, Y" }}</span>
+        <span class="flex-grow-1 text-truncate pe-3">"{{ item.text }}"</span>
+        {% if item.is_completed %}
+        <span class="badge-done"><i class="bi bi-check"></i> Completed</span>
+        {% else %}
+        <span class="badge-pending">Read</span>
+        {% endif %}
+    </div>
+    {% empty %}
+    <div class="text-center py-4 text-secondary">
+        <p class="mb-0">No past motivations yet. Keep returning daily to build your record!</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

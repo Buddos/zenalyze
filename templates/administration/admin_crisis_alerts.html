@@ -1,0 +1,101 @@
+{% extends "administration/admin_base.html" %}
+
+{% block title %}Crisis Alerts & Support - Zenalyze Admin{% endblock %}
+{% block page_title %}Crisis Intervention & Alerts Dispatch{% endblock %}
+{% block page_subtitle %}Broadcast urgent emergency notifications and manage immediate crisis hotlines{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <div class="col-lg-8">
+        <div class="card p-4 border-0 shadow-sm" style="background: var(--card-bg); border-radius: 20px;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold mb-0 text-danger"><i class="bi bi-broadcast me-2"></i> Active Crisis Broadcasts</h5>
+                <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#newAlertModal" style="border-radius: 10px;">
+                    <i class="bi bi-plus-lg me-1"></i> New Alert
+                </button>
+            </div>
+
+            {% for alert in alerts %}
+            <div class="p-3 border rounded-3 mb-3" style="border-color: var(--border-color) !important;">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <div>
+                        <span class="badge {% if alert.severity == 'critical' %}bg-danger{% elif alert.severity == 'high' %}bg-warning text-dark{% else %}bg-info{% endif %} text-uppercase me-2">
+                            {{ alert.severity }}
+                        </span>
+                        <strong class="fs-6">{{ alert.title }}</strong>
+                    </div>
+                    <form method="POST" action="{% url 'administration:toggle_crisis_alert' alert.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm {% if alert.is_active %}btn-outline-secondary{% else %}btn-outline-success{% endif %}" style="border-radius: 8px; font-size: 0.75rem;">
+                            {% if alert.is_active %}Deactivate{% else %}Activate{% endif %}
+                        </button>
+                    </form>
+                </div>
+                <p class="text-secondary small mb-2">{{ alert.message }}</p>
+                <div class="text-secondary" style="font-size: 0.72rem;">
+                    Created on {{ alert.created_at|date:"M d, Y g:i A" }}
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-4 text-secondary">
+                <i class="bi bi-shield-check fs-1 text-success mb-2 d-block"></i>
+                <p class="mb-0">No active crisis broadcasts currently dispatched.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Hotlines Reference List -->
+    <div class="col-lg-4">
+        <div class="card p-4 border-0 shadow-sm" style="background: var(--card-bg); border-radius: 20px;">
+            <h5 class="fw-bold mb-3"><i class="bi bi-telephone-fill text-primary me-2"></i> Emergency Resources</h5>
+            {% for res in resources %}
+            <div class="p-3 bg-light rounded-3 mb-2 small">
+                <div class="fw-bold text-primary">{{ res.resource_name }}</div>
+                <div class="text-secondary">{{ res.phone_number }} ({{ res.hours }})</div>
+            </div>
+            {% empty %}
+            <p class="text-secondary small">No emergency resources configured.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: New Crisis Alert -->
+<div class="modal fade" id="newAlertModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold text-danger">Broadcast Crisis Notice</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'administration:create_crisis_alert' %}">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Severity</label>
+                        <select name="severity" class="form-select" style="border-radius: 12px;">
+                            <option value="medium">Medium - Important Alert</option>
+                            <option value="high">High - Urgent Support Required</option>
+                            <option value="critical">Critical - Immediate Danger / Hotlines Prominent</option>
+                            <option value="low">Low - Routine Well-being Advisory</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Alert Headline</label>
+                        <input type="text" name="title" class="form-control" placeholder="e.g. Critical Heatwave or Extreme Stress Advisory" required style="border-radius: 12px;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Advisory Message</label>
+                        <textarea name="message" class="form-control" rows="3" placeholder="Provide emergency context and coping directives..." required style="border-radius: 12px;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 12px;">Cancel</button>
+                    <button type="submit" class="btn btn-danger" style="border-radius: 12px;">Broadcast Immediately</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

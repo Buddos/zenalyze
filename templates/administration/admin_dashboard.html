@@ -1,0 +1,161 @@
+{% extends "administration/admin_base.html" %}
+
+{% block title %}System Dashboard - Zenalyze Admin{% endblock %}
+{% block page_title %}Platform Overview & Analytics{% endblock %}
+{% block page_subtitle %}Live metrics, engagement statistics, and recent platform events{% endblock %}
+
+{% block extra_css %}
+<style>
+    .stats-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    }
+    .stats-card .icon-box {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+    }
+    .stats-val {
+        font-size: 2rem;
+        font-weight: 800;
+        margin: 0.5rem 0 0.15rem 0;
+        color: var(--text-primary);
+    }
+    .admin-table-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Metrics Row -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-secondary small fw-semibold text-uppercase">Total Users</span>
+                <div class="icon-box bg-primary bg-opacity-10 text-primary"><i class="bi bi-people-fill"></i></div>
+            </div>
+            <div class="stats-val">{{ stats.total_users|default:0 }}</div>
+            <div class="text-success small fw-semibold"><i class="bi bi-arrow-up-right me-1"></i> Active Community</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-secondary small fw-semibold text-uppercase">Mood Check-ins</span>
+                <div class="icon-box bg-success bg-opacity-10 text-success"><i class="bi bi-emoji-smile-fill"></i></div>
+            </div>
+            <div class="stats-val">{{ stats.total_moods|default:0 }}</div>
+            <div class="text-secondary small">Logged entries</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-secondary small fw-semibold text-uppercase">Forum Stories</span>
+                <div class="icon-box bg-info bg-opacity-10 text-info"><i class="bi bi-chat-quote-fill"></i></div>
+            </div>
+            <div class="stats-val">{{ stats.total_posts|default:0 }}</div>
+            <div class="text-secondary small">Community posts</div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stats-card">
+            <div class="d-flex justify-content-between align-items-center">
+                <span class="text-secondary small fw-semibold text-uppercase">Crisis Alerts</span>
+                <div class="icon-box bg-danger bg-opacity-10 text-danger"><i class="bi bi-exclamation-triangle-fill"></i></div>
+            </div>
+            <div class="stats-val text-danger">{{ stats.active_alerts|default:0 }}</div>
+            <div class="text-secondary small">Active notices</div>
+        </div>
+    </div>
+</div>
+
+<!-- Secondary details row -->
+<div class="row g-4">
+    <!-- Recent Users Table -->
+    <div class="col-lg-7">
+        <div class="admin-table-card">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-person-plus me-2 text-primary"></i> Recently Registered Users</h6>
+                <a href="{% url 'administration:users' %}" class="btn btn-sm btn-link text-decoration-none">View all</a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr class="small text-secondary">
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in recent_users %}
+                        <tr>
+                            <td class="fw-semibold">{{ u.username }}</td>
+                            <td class="small text-secondary">{{ u.email }}</td>
+                            <td>
+                                <span class="badge {% if u.role == 'admin' %}bg-danger{% else %}bg-primary{% endif %} bg-opacity-10 text-{% if u.role == 'admin' %}danger{% else %}primary{% endif %}">
+                                    {{ u.role|title }}
+                                </span>
+                            </td>
+                            <td class="small text-secondary">{{ u.date_joined|date:"M d, Y" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="4" class="text-center py-3 text-secondary">No users found</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- System Status & Quick Actions -->
+    <div class="col-lg-5">
+        <div class="admin-table-card">
+            <h6 class="fw-bold mb-3"><i class="bi bi-cpu me-2 text-primary"></i> Environment Status</h6>
+            <ul class="list-group list-group-flush small">
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-secondary">Framework</span>
+                    <span class="fw-bold">Python Django 6.1</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-secondary">Database</span>
+                    <span class="fw-bold">SQLite 3 (Migrated)</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-secondary">Database Engine</span>
+                    <span class="badge bg-success bg-opacity-10 text-success">Healthy</span>
+                </li>
+                <li class="list-group-item d-flex justify-content-between px-0">
+                    <span class="text-secondary">Security Headers</span>
+                    <span class="badge bg-success bg-opacity-10 text-success">Active</span>
+                </li>
+            </ul>
+
+            <h6 class="fw-bold mt-4 mb-3"><i class="bi bi-lightning-charge me-2 text-warning"></i> Quick Operations</h6>
+            <div class="d-grid gap-2">
+                <a href="{% url 'administration:crisis_alerts' %}" class="btn btn-sm btn-outline-danger" style="border-radius: 10px;">
+                    <i class="bi bi-megaphone me-1"></i> Broadcast Crisis Alert
+                </a>
+                <a href="{% url 'administration:moderation' %}" class="btn btn-sm btn-outline-primary" style="border-radius: 10px;">
+                    <i class="bi bi-shield-check me-1"></i> Review Content Flags
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Therapy & Professional Support - Zenalyze{% endblock %}
+{% block page_title %}Professional Therapy & Counseling{% endblock %}
+{% block page_subtitle %}Connect with licensed psychologists, therapists, and certified mental wellness practitioners{% endblock %}
+
+{% block extra_css %}
+<style>
+    .therapy-hero-banner {
+        background: linear-gradient(135deg, rgba(93, 138, 168, 0.15), rgba(127, 182, 133, 0.15));
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+    }
+    .therapists-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 3rem;
+    }
+    .therapist-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 1.75rem;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.03);
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .therapist-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.06);
+    }
+    .therapist-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.75rem;
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+    .verified-badge {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        font-size: 0.72rem;
+        font-weight: 700;
+        padding: 0.25rem 0.6rem;
+        border-radius: 50px;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    .session-item {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.25rem 1.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="therapy-hero-banner">
+    <div class="row align-items-center">
+        <div class="col-lg-8">
+            <h2 class="fw-bold mb-2"><i class="bi bi-chat-heart text-primary me-2"></i> Professional Care, When You Need It</h2>
+            <p class="text-secondary mb-3">Our vetted counselors are specialized in anxiety, depression, trauma, stress management, and relationship dynamics.</p>
+            <div class="d-flex gap-3">
+                <a href="#directorySection" class="btn btn-primary" style="border-radius: 12px; padding: 0.6rem 1.4rem;">
+                    Find a Therapist
+                </a>
+                <a href="{% url 'core:crisis_help' %}" class="btn btn-outline-danger" style="border-radius: 12px; padding: 0.6rem 1.4rem;">
+                    Immediate Crisis Help
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- My Upcoming & Past Sessions -->
+<div class="mb-5">
+    <h4 class="fw-bold mb-3"><i class="bi bi-calendar-event me-2"></i> My Therapy Sessions</h4>
+    {% if user_sessions %}
+        {% for session in user_sessions %}
+        <div class="session-item">
+            <div>
+                <div class="fw-bold text-primary fs-6">{{ session.therapist.name }}</div>
+                <div class="text-secondary small">
+                    <i class="bi bi-clock me-1"></i> {{ session.session_date|date:"F j, Y" }} {% if session.session_time %}at {{ session.session_time|time:"g:i A" }}{% endif %} ({{ session.duration_minutes }} min)
+                </div>
+            </div>
+            <div>
+                <span class="badge {% if session.status == 'scheduled' %}bg-primary{% elif session.status == 'completed' %}bg-success{% else %}bg-secondary{% endif %} px-3 py-2" style="border-radius: 50px;">
+                    {{ session.status|title }}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="card p-4 text-center text-secondary border-0" style="background: var(--hover-bg); border-radius: 16px;">
+            <p class="mb-0">You don't have any therapy sessions booked yet. Book a session with a licensed counselor below.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Therapist Directory -->
+<div id="directorySection" class="mb-4">
+    <h4 class="fw-bold mb-3"><i class="bi bi-person-badge me-2"></i> Licensed Counselors</h4>
+    <div class="therapists-grid">
+        {% for therapist in therapists %}
+        <div class="therapist-card">
+            <div>
+                <div class="d-flex justify-content-between align-items-start mb-3">
+                    <div class="therapist-avatar">
+                        {{ therapist.name|slice:":1"|upper }}
+                    </div>
+                    {% if therapist.is_verified %}
+                    <span class="verified-badge"><i class="bi bi-patch-check-fill"></i> Verified</span>
+                    {% endif %}
+                </div>
+                <h5 class="fw-bold mb-1">{{ therapist.name }}</h5>
+                <div class="text-primary small fw-semibold mb-2">{{ therapist.specialization|default:"General Psychotherapy" }}</div>
+                <p class="text-secondary small mb-3" style="line-height: 1.5;">{{ therapist.bio|truncatewords:25 }}</p>
+
+                <div class="small text-secondary mb-2">
+                    <i class="bi bi-briefcase me-1"></i> {{ therapist.experience_years }}+ years experience
+                </div>
+                <div class="small text-secondary mb-2">
+                    <i class="bi bi-translate me-1"></i> {{ therapist.languages_spoken }}
+                </div>
+                <div class="small fw-bold text-success mb-3">
+                    <i class="bi bi-cash me-1"></i> KES {{ therapist.consultation_fee|floatformat:0 }} / 50 min session
+                </div>
+            </div>
+
+            <div class="pt-3 border-top d-flex gap-2" style="border-color: var(--border-color) !important;">
+                <button class="btn btn-sm btn-primary flex-grow-1" onclick="openBookingModal('{{ therapist.id }}', '{{ therapist.name|escapejs }}')" style="border-radius: 10px; padding: 0.5rem;">
+                    <i class="bi bi-calendar-plus me-1"></i> Book Session
+                </button>
+                {% if therapist.whatsapp %}
+                <a href="https://wa.me/{{ therapist.whatsapp }}" target="_blank" class="btn btn-sm btn-outline-success" style="border-radius: 10px; padding: 0.5rem 0.75rem;" title="WhatsApp">
+                    <i class="bi bi-whatsapp"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5 text-secondary">
+            <p>No therapists listed at this time.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Booking Modal -->
+<div class="modal fade" id="bookingModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: 20px; background: var(--card-bg); border: 1px solid var(--border-color);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Book Therapy Session</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'therapists:book_session' %}">
+                {% csrf_token %}
+                <input type="hidden" name="therapist_id" id="modalTherapistId">
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 px-3 small mb-3" style="border-radius: 12px;">
+                        Booking with: <strong id="modalTherapistName"></strong>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Preferred Date</label>
+                        <input type="date" name="session_date" class="form-control" required style="border-radius: 12px;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Preferred Time</label>
+                        <input type="time" name="session_time" class="form-control" style="border-radius: 12px;">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-secondary small fw-semibold">Session Goals / Notes (Confidential)</label>
+                        <textarea name="notes" class="form-control" rows="3" placeholder="What would you like to focus on in this session?" style="border-radius: 12px;"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 12px;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="border-radius: 12px;">Confirm Booking</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function openBookingModal(id, name) {
+        document.getElementById('modalTherapistId').value = id;
+        document.getElementById('modalTherapistName').textContent = name;
+        new bootstrap.Modal(document.getElementById('bookingModal')).show();
+    }
+</script>
+{% endblock %}

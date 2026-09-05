@@ -1,0 +1,61 @@
+{% extends "administration/admin_base.html" %}
+
+{% block title %}System Settings - Zenalyze Admin{% endblock %}
+{% block page_title %}Global Platform Settings{% endblock %}
+{% block page_subtitle %}Configure system behavior, community defaults, and operational parameters{% endblock %}
+
+{% block content %}
+<div class="card p-4 border-0 shadow-sm" style="background: var(--card-bg); border-radius: 20px; max-width: 800px;">
+    {% if success_message %}
+    <div class="alert alert-success d-flex align-items-center mb-4" style="border-radius: 14px;">
+        <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+        <div>{{ success_message }}</div>
+    </div>
+    {% endif %}
+
+    <form method="POST" action="{% url 'administration:settings' %}">
+        {% csrf_token %}
+        <div class="mb-4">
+            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-globe me-2"></i> General Platform Preferences</h6>
+            <div class="mb-3">
+                <label class="form-label text-secondary small fw-semibold">Platform Name</label>
+                <input type="text" name="site_name" value="{{ settings.site_name|default:'Zenalyze Mental Wellness Platform' }}" class="form-control" style="border-radius: 12px;">
+            </div>
+            <div class="mb-3">
+                <label class="form-label text-secondary small fw-semibold">Support & Contact Email</label>
+                <input type="email" name="contact_email" value="{{ settings.contact_email|default:'support@zenalyze.com' }}" class="form-control" style="border-radius: 12px;">
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-shield-check me-2"></i> Security & Access</h6>
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" name="allow_registration" id="allowReg" {% if settings.allow_registration != '0' %}checked{% endif %}>
+                <label class="form-check-label small" for="allowReg">Allow new member registrations</label>
+            </div>
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" name="require_email_verify" id="emailVerify" {% if settings.require_email_verify == '1' %}checked{% endif %}>
+                <label class="form-check-label small" for="emailVerify">Require email verification for new accounts</label>
+            </div>
+        </div>
+
+        <div class="mb-4">
+            <h6 class="fw-bold text-primary mb-3"><i class="bi bi-chat-heart me-2"></i> Wellness Defaults</h6>
+            <div class="mb-3">
+                <label class="form-label text-secondary small fw-semibold">Default Daily Motivation Category</label>
+                <select name="default_motivation" class="form-select" style="border-radius: 12px;">
+                    <option value="affirmation">Affirmation</option>
+                    <option value="mindfulness">Mindfulness</option>
+                    <option value="tip">Daily Habit Tip</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="pt-3 border-top" style="border-color: var(--border-color) !important;">
+            <button type="submit" class="btn btn-primary px-4 py-2" style="border-radius: 12px; font-weight: 600;">
+                <i class="bi bi-save me-1"></i> Save Platform Changes
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

@@ -1,0 +1,332 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Zen AI Wellness & Financial Companion - Zenalyze{% endblock %}
+{% block topbar_title %}Zen AI Companion{% endblock %}
+{% block topbar_subtitle %}Your intelligent guide for emotional well-being, financial clarity, and daily mindfulness{% endblock %}
+
+{% block extra_css %}
+<style>
+    .ai-hero-card {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 1.25rem 1.75rem;
+        margin-bottom: 1.25rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    .ai-badge-pulse {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: 50px;
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .ai-pulse-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+        animation: pulseDot 2s infinite;
+    }
+    @keyframes pulseDot {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+        70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    .prompt-chip-list {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.25rem;
+        scrollbar-width: thin;
+    }
+    .prompt-chip {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 50px;
+        padding: 0.4rem 0.95rem;
+        font-size: 0.82rem;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        text-decoration: none;
+    }
+    .prompt-chip:hover {
+        background: var(--hover-bg);
+        color: #667eea;
+        border-color: #667eea;
+        transform: translateY(-1px);
+    }
+
+    .ai-frame-container {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        overflow: hidden;
+        position: relative;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.04);
+        height: calc(100vh - 230px);
+        min-height: 650px;
+        display: flex;
+        flex-direction: column;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Fullscreen Mode */
+    .ai-frame-container.is-fullscreen {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        height: 100vh;
+        min-height: 100vh;
+        border-radius: 0;
+        margin: 0;
+        border: none;
+    }
+
+    .ai-frame-toolbar {
+        padding: 0.75rem 1.25rem;
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-shrink: 0;
+    }
+
+    .ai-iframe-element {
+        flex: 1;
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: transparent;
+    }
+
+    .loading-overlay {
+        position: absolute;
+        inset: 0;
+        background: var(--card-bg);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+        transition: opacity 0.4s ease;
+    }
+    .loading-overlay.fade-out {
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    .ai-loader-ring {
+        width: 56px;
+        height: 56px;
+        border-radius: 50%;
+        border: 3px solid rgba(102, 126, 234, 0.15);
+        border-top-color: #667eea;
+        border-right-color: #764ba2;
+        animation: spinRing 1s linear infinite;
+        margin-bottom: 1.25rem;
+    }
+    @keyframes spinRing {
+        to { transform: rotate(360deg); }
+    }
+
+    .toast-copy {
+        position: fixed;
+        bottom: 2rem;
+        left: 50%;
+        transform: translateX(-50%) translateY(100px);
+        background: #1e293b;
+        color: white;
+        padding: 0.6rem 1.25rem;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        transition: transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
+        z-index: 10000;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .toast-copy.show {
+        transform: translateX(-50%) translateY(0);
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<!-- Hero Bar with Zen AI Identity & Launch Controls -->
+<div class="ai-hero-card">
+    <div class="d-flex align-items-center gap-3">
+        <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; box-shadow: 0 4px 14px rgba(102,126,234,0.35);">
+            <i class="bi bi-robot"></i>
+        </div>
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <h5 class="fw-bold mb-0 text-primary">Zen AI Companion</h5>
+                <span class="ai-badge-pulse">
+                    <span class="ai-pulse-dot"></span> Live Assistant
+                </span>
+            </div>
+            <p class="text-secondary small mb-0">Powered by Zen AI • Tracking mood, financial wellness, and guided growth</p>
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-sm btn-outline-secondary" onclick="reloadAiFrame()" title="Reload Assistant" style="border-radius: 10px; padding: 0.45rem 0.85rem;">
+            <i class="bi bi-arrow-clockwise me-1"></i> Reload
+        </button>
+        <button class="btn btn-sm btn-outline-primary" id="fullscreenToggleBtn" onclick="toggleFullscreenAi()" title="Expand Fullscreen" style="border-radius: 10px; padding: 0.45rem 0.85rem;">
+            <i class="bi bi-arrows-fullscreen me-1"></i> Fullscreen
+        </button>
+        <a href="https://zen-ai-34.lovable.app" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary" title="Launch in New Tab" style="border-radius: 10px; padding: 0.45rem 1rem;">
+            <i class="bi bi-box-arrow-up-right me-1"></i> Pop Out
+        </a>
+    </div>
+</div>
+
+<!-- Recommended Prompts Chips -->
+<div class="prompt-chip-list">
+    <button class="prompt-chip" onclick="copyPromptText('How can I calm down and ground myself right now?')">
+        <span>🧘</span> How can I calm anxiety right now?
+    </button>
+    <button class="prompt-chip" onclick="copyPromptText('Help me analyze my budget and reduce financial stress.')">
+        <span>💰</span> Help me manage my budget stress
+    </button>
+    <button class="prompt-chip" onclick="copyPromptText('Give me a 5-minute mindfulness reflection for today.')">
+        <span>✨</span> 5-minute mindfulness reflection
+    </button>
+    <button class="prompt-chip" onclick="copyPromptText('What are healthy habits to improve my sleep and energy?')">
+        <span>🌙</span> Tips for evening relaxation & sleep
+    </button>
+    <button class="prompt-chip" onclick="copyPromptText('Give me positive affirmations for resilience.')">
+        <span>🌱</span> Affirmations for resilience
+    </button>
+</div>
+
+<!-- Main AI Companion Container embedding zen-ai-34.lovable.app -->
+<div class="ai-frame-container" id="aiFrameContainer">
+    <!-- Top toolbar inside frame (useful when in fullscreen) -->
+    <div class="ai-frame-toolbar d-none" id="fullscreenToolbar">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-robot text-primary fs-5"></i>
+            <span class="fw-bold text-primary small">Zen AI Companion</span>
+            <span class="badge bg-success bg-opacity-10 text-success small">Connected</span>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-outline-secondary" onclick="reloadAiFrame()"><i class="bi bi-arrow-clockwise"></i></button>
+            <button class="btn btn-sm btn-danger" onclick="toggleFullscreenAi()"><i class="bi bi-fullscreen-exit me-1"></i> Exit Fullscreen</button>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" id="aiLoadingOverlay">
+        <div class="ai-loader-ring"></div>
+        <h6 class="fw-bold mb-1 text-primary">Connecting to Zen AI...</h6>
+        <p class="text-secondary small mb-3">Initializing your secure conversational assistant</p>
+        <a href="https://zen-ai-34.lovable.app" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px; font-size: 0.75rem;">
+            Click here if taking longer than expected
+        </a>
+    </div>
+
+    <!-- The Lovable AI Chatbot Interface -->
+    <iframe 
+        src="https://zen-ai-34.lovable.app" 
+        class="ai-iframe-element" 
+        id="aiCompanionFrame"
+        allow="microphone; camera; clipboard-read; clipboard-write; autoplay; fullscreen"
+        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-downloads allow-popups-to-escape-sandbox"
+        onload="onAiFrameLoaded()">
+    </iframe>
+</div>
+
+<!-- Copy Toast Notification -->
+<div class="toast-copy" id="promptToast">
+    <i class="bi bi-check-circle-fill text-success"></i>
+    <span id="promptToastText">Prompt copied! Paste it into Zen AI chat below.</span>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function onAiFrameLoaded() {
+        const overlay = document.getElementById('aiLoadingOverlay');
+        if (overlay) {
+            overlay.classList.add('fade-out');
+            setTimeout(() => { overlay.style.display = 'none'; }, 400);
+        }
+    }
+
+    // Fallback: dismiss loading screen after 4 seconds
+    setTimeout(onAiFrameLoaded, 4000);
+
+    function reloadAiFrame() {
+        const overlay = document.getElementById('aiLoadingOverlay');
+        const frame = document.getElementById('aiCompanionFrame');
+        if (overlay) {
+            overlay.style.display = 'flex';
+            overlay.classList.remove('fade-out');
+        }
+        if (frame) {
+            frame.src = 'https://zen-ai-34.lovable.app?ts=' + Date.now();
+        }
+        setTimeout(onAiFrameLoaded, 3000);
+    }
+
+    function toggleFullscreenAi() {
+        const container = document.getElementById('aiFrameContainer');
+        const fsToolbar = document.getElementById('fullscreenToolbar');
+        const btn = document.getElementById('fullscreenToggleBtn');
+        
+        container.classList.toggle('is-fullscreen');
+        
+        if (container.classList.contains('is-fullscreen')) {
+            fsToolbar.classList.remove('d-none');
+            document.body.style.overflow = 'hidden';
+            if (btn) btn.innerHTML = '<i class="bi bi-fullscreen-exit me-1"></i> Exit';
+        } else {
+            fsToolbar.classList.add('d-none');
+            document.body.style.overflow = '';
+            if (btn) btn.innerHTML = '<i class="bi bi-arrows-fullscreen me-1"></i> Fullscreen';
+        }
+    }
+
+    // Escape key exits fullscreen
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            const container = document.getElementById('aiFrameContainer');
+            if (container && container.classList.contains('is-fullscreen')) {
+                toggleFullscreenAi();
+            }
+        }
+    });
+
+    function copyPromptText(text) {
+        navigator.clipboard.writeText(text).then(() => {
+            const toast = document.getElementById('promptToast');
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 3000);
+        }).catch(() => {
+            alert('Prompt: ' + text);
+        });
+    }
+</script>
+{% endblock %}

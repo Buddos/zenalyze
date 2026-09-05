@@ -1,0 +1,147 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Generate Wellness Report - Zenalyze{% endblock %}
+{% block page_title %}Wellness Report Generator{% endblock %}
+{% block page_subtitle %}Export and print detailed analytical summaries of your mental health trends{% endblock %}
+
+{% block extra_css %}
+<style>
+    .report-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        margin-bottom: 2rem;
+    }
+    .report-header-banner {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        border-radius: 16px;
+        padding: 2.5rem;
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    .report-header-banner h1 {
+        font-size: 2.2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    .report-preview-box {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.75rem;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 0.88rem;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        color: var(--text-primary);
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .stats-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    .summary-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 16px;
+        padding: 1.25rem;
+        text-align: center;
+    }
+    .summary-val {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #667eea;
+    }
+    .summary-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        font-weight: 600;
+    }
+    @media (max-width: 768px) {
+        .stats-summary-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="report-header-banner">
+    <h1><i class="bi bi-file-earmark-medical"></i> Health & Mood Analysis Report</h1>
+    <p class="mb-0 opacity-90">Personalized data insights formatted for personal reflection or sharing with a therapist.</p>
+</div>
+
+<div class="report-card">
+    <h5 class="mb-4 fw-bold"><i class="bi bi-sliders2 me-2"></i> Report Configuration</h5>
+    <form method="GET" action="{% url 'wellness:generate_report' %}" class="row g-3 align-items-end mb-4">
+        <div class="col-md-5">
+            <label class="form-label text-secondary small fw-semibold">Date Range</label>
+            <select name="range" class="form-select" style="border-radius: 12px; padding: 0.65rem 1rem;">
+                <option value="30days" {% if date_range == '30days' %}selected{% endif %}>Last 30 Days</option>
+                <option value="90days" {% if date_range == '90days' %}selected{% endif %}>Last 90 Days</option>
+                <option value="6months" {% if date_range == '6months' %}selected{% endif %}>Last 6 Months</option>
+                <option value="year" {% if date_range == 'year' %}selected{% endif %}>Past Year</option>
+                <option value="all" {% if date_range == 'all' %}selected{% endif %}>All Time History</option>
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label text-secondary small fw-semibold">Report Focus</label>
+            <select name="type" class="form-select" style="border-radius: 12px; padding: 0.65rem 1rem;">
+                <option value="comprehensive" {% if report_type == 'comprehensive' %}selected{% endif %}>Comprehensive Health & Mood</option>
+                <option value="mood" {% if report_type == 'mood' %}selected{% endif %}>Mood & Emotions Only</option>
+                <option value="stress_sleep" {% if report_type == 'stress_sleep' %}selected{% endif %}>Stress & Sleep Quality</option>
+            </select>
+        </div>
+        <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary w-100" style="border-radius: 12px; padding: 0.65rem;">
+                <i class="bi bi-arrow-repeat me-1"></i> Update
+            </button>
+            <a href="{% url 'wellness:generate_report' %}?type={{ report_type }}&range={{ date_range }}&download=true" class="btn btn-outline-success" style="border-radius: 12px; padding: 0.65rem;" title="Download as Text File">
+                <i class="bi bi-download"></i>
+            </a>
+        </div>
+    </form>
+
+    <div class="stats-summary-grid">
+        <div class="summary-card">
+            <div class="summary-val">{{ stats.total_entries|default:0 }}</div>
+            <div class="summary-label">Total Logs</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-val">{{ stats.avg_mood|default:"0.0" }}/10</div>
+            <div class="summary-label">Avg Mood</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-val">{{ stats.avg_stress|default:"0.0" }}/10</div>
+            <div class="summary-label">Avg Stress</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-val">{{ stats.avg_energy|default:"0.0" }}/10</div>
+            <div class="summary-label">Avg Energy</div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h6 class="fw-bold mb-0"><i class="bi bi-eye me-2"></i> Report Preview</h6>
+        <div class="d-flex gap-2">
+            <button onclick="window.print()" class="btn btn-sm btn-outline-secondary" style="border-radius: 10px;">
+                <i class="bi bi-printer me-1"></i> Print
+            </button>
+            <a href="{% url 'wellness:generate_report' %}?type={{ report_type }}&range={{ date_range }}&download=true" class="btn btn-sm btn-success" style="border-radius: 10px;">
+                <i class="bi bi-file-earmark-arrow-down me-1"></i> Download .txt
+            </a>
+        </div>
+    </div>
+
+    <div class="report-preview-box">
+{{ report_text }}
+    </div>
+</div>
+{% endblock %}

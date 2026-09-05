@@ -1,0 +1,465 @@
+{% extends 'base_public.html' %}
+{% load static %}
+
+{% block title %}Zenalyze - Your Peaceful Mental Wellness Journey{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* HERO SECTION */
+    .hero-section {
+        padding: 90px 0 80px;
+        background: radial-gradient(circle at top right, rgba(125, 167, 202, 0.15), transparent 60%),
+                    radial-gradient(circle at bottom left, rgba(127, 182, 133, 0.15), transparent 60%);
+        position: relative;
+    }
+    .hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(93, 138, 168, 0.1);
+        color: var(--primary-color);
+        padding: 6px 16px;
+        border-radius: 50px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 20px;
+        border: 1px solid rgba(93, 138, 168, 0.2);
+    }
+    .hero-title {
+        font-size: 3.2rem;
+        font-weight: 800;
+        color: var(--dark-bg);
+        line-height: 1.2;
+        margin-bottom: 20px;
+    }
+    .hero-title span {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+    .hero-subtitle {
+        font-size: 1.15rem;
+        color: var(--text-light);
+        margin-bottom: 35px;
+        max-width: 540px;
+        line-height: 1.7;
+    }
+    .hero-preview-card {
+        background: white;
+        border-radius: 24px;
+        padding: 30px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.08);
+        border: 1px solid rgba(93, 138, 168, 0.15);
+        position: relative;
+    }
+    .hero-stat-pill {
+        background: var(--light-bg);
+        padding: 12px 18px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+        border: 1px solid #eef2f5;
+    }
+
+    /* FEATURES GRID */
+    .features-section {
+        padding: 90px 0;
+        background: white;
+    }
+    .section-header {
+        text-align: center;
+        max-width: 650px;
+        margin: 0 auto 60px;
+    }
+    .section-header h2 {
+        font-size: 2.3rem;
+        font-weight: 700;
+        margin-bottom: 15px;
+    }
+    .feature-card {
+        background: var(--light-bg);
+        border-radius: 20px;
+        padding: 35px 28px;
+        transition: all 0.3s ease;
+        border: 1px solid rgba(93, 138, 168, 0.1);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .feature-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 15px 35px rgba(93, 138, 168, 0.12);
+        background: white;
+        border-color: var(--primary-light);
+    }
+    .feature-icon-wrap {
+        width: 56px;
+        height: 56px;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-bottom: 22px;
+    }
+
+    /* STATS COUNTER BAR */
+    .stats-bar-section {
+        padding: 60px 0;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+    }
+    .stat-counter-number {
+        font-size: 2.6rem;
+        font-weight: 800;
+        margin-bottom: 5px;
+    }
+    .stat-counter-label {
+        font-size: 0.95rem;
+        opacity: 0.9;
+        font-weight: 500;
+    }
+
+    /* TESTIMONIALS */
+    .testimonials-section {
+        padding: 90px 0;
+        background: var(--light-bg);
+    }
+    .testimonial-card {
+        background: white;
+        border-radius: 20px;
+        padding: 30px;
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .testimonial-avatar {
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+    }
+
+    /* CTA */
+    .cta-section {
+        padding: 80px 0;
+        background: radial-gradient(circle at center, rgba(93, 138, 168, 0.12), transparent 70%);
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="hero-badge">
+                    <i class="bi bi-stars"></i> Your Mindful Mental Wellness Companion
+                </div>
+                <h1 class="hero-title">
+                    Find Inner Peace, <span>Clarity & Emotional Balance</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Track your daily moods, practice scientifically proven breathing exercises, reflect in your encrypted personal journal, and connect with peer empathy in one tranquil digital space.
+                </p>
+                <div class="d-flex flex-wrap gap-3">
+                    {% if user.is_authenticated %}
+                    <a href="{% url 'wellness:dashboard' %}" class="btn-primary-custom btn-lg">
+                        Go to Your Dashboard <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                    {% else %}
+                    <a href="{% url 'accounts:register' %}" class="btn-primary-custom btn-lg">
+                        Begin Your Journey Free <i class="bi bi-arrow-right ms-1"></i>
+                    </a>
+                    <a href="{% url 'accounts:login' %}" class="btn-outline-custom btn-lg">
+                        Sign In
+                    </a>
+                    {% endif %}
+                </div>
+                <div class="d-flex align-items-center gap-4 mt-4 pt-2 text-muted small">
+                    <div><i class="bi bi-shield-check text-success me-1"></i> 100% Private & Encrypted</div>
+                    <div><i class="bi bi-heart-fill text-danger me-1"></i> Science-Backed CBT Tools</div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="hero-preview-card">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <div>
+                            <h5 class="mb-0 fw-bold text-dark">Today's Check-in</h5>
+                            <span class="small text-muted">Mindful Baseline Active</span>
+                        </div>
+                        <span class="badge bg-success bg-opacity-10 text-success p-2 px-3 rounded-pill fw-bold">
+                            <i class="bi bi-activity me-1"></i> Balanced
+                        </span>
+                    </div>
+
+                    <div class="hero-stat-pill">
+                        <div class="rounded-circle p-2 bg-primary bg-opacity-10 text-primary fs-5">
+                            😊
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="small text-muted">Average Mood</div>
+                            <div class="fw-bold">8.5 / 10 • Peaceful & Centered</div>
+                        </div>
+                        <span class="text-success fw-bold small">+12% vs last week</span>
+                    </div>
+
+                    <div class="hero-stat-pill">
+                        <div class="rounded-circle p-2 bg-success bg-opacity-10 text-success fs-5">
+                            🌬️
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="small text-muted">Breathwork Streak</div>
+                            <div class="fw-bold">7 Consecutive Days</div>
+                        </div>
+                        <i class="bi bi-fire text-warning fs-5"></i>
+                    </div>
+
+                    <div class="hero-stat-pill">
+                        <div class="rounded-circle p-2 bg-info bg-opacity-10 text-info fs-5">
+                            📖
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="small text-muted">Reflection Journal</div>
+                            <div class="fw-bold">14 Gratitude Entries Saved</div>
+                        </div>
+                        <i class="bi bi-check-circle-fill text-primary"></i>
+                    </div>
+
+                    <div class="mt-4 pt-2 border-top text-center">
+                        <span class="small text-muted">
+                            <i class="bi bi-quote text-primary me-1"></i>
+                            "Peace begins the moment you decide not to allow people or events to control your emotions."
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Grid -->
+<section class="features-section" id="features">
+    <div class="container">
+        <div class="section-header">
+            <span class="text-primary fw-bold text-uppercase small tracking-wide">Complete Mental Sanctuary</span>
+            <h2>Thoughtfully Designed for Every Dimension of Your Well-being</h2>
+            <p class="text-muted">A harmonious ecosystem of tools built with evidence-based psychology and mindfulness traditions.</p>
+        </div>
+
+        <div class="row g-4">
+            <!-- Mood Tracking -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap" style="background: rgba(93, 138, 168, 0.12); color: var(--primary-color);">
+                        <i class="bi bi-emoji-smile"></i>
+                    </div>
+                    <h4 class="fw-bold fs-5 mb-2">Nuanced Mood Tracker</h4>
+                    <p class="text-muted small flex-grow-1">
+                        Log primary and secondary emotions, stress, energy levels, and sleep quality to uncover deep psychological patterns over time.
+                    </p>
+                    <a href="{% url 'accounts:login' %}" class="fw-bold text-decoration-none small" style="color: var(--primary-color);">Explore Tracking →</a>
+                </div>
+            </div>
+
+            <!-- Meditation & Breathing -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap" style="background: rgba(127, 182, 133, 0.12); color: var(--secondary-color);">
+                        <i class="bi bi-wind"></i>
+                    </div>
+                    <h4 class="fw-bold fs-5 mb-2">Guided Breathwork & Meditation</h4>
+                    <p class="text-muted small flex-grow-1">
+                        Somatic Box Breathing, 4-7-8 relaxing breath, mindfulness body scans, and loving-kindness meditations with soothing visual timers.
+                    </p>
+                    <a href="{% url 'accounts:login' %}" class="fw-bold text-decoration-none small" style="color: var(--secondary-color);">Start Meditating →</a>
+                </div>
+            </div>
+
+            <!-- Journal -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap" style="background: rgba(184, 184, 209, 0.2); color: #5a52d5;">
+                        <i class="bi bi-journal-text"></i>
+                    </div>
+                    <h4 class="fw-bold fs-5 mb-2">Encrypted Reflective Journal</h4>
+                    <p class="text-muted small flex-grow-1">
+                        Prompt-assisted reflection, gratitude lists, dream logs, and creative writing. Mark private or favorite with complete confidentiality.
+                    </p>
+                    <a href="{% url 'accounts:login' %}" class="fw-bold text-decoration-none small" style="color: #5a52d5;">Write in Journal →</a>
+                </div>
+            </div>
+
+            <!-- Analytics -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap" style="background: rgba(59, 130, 246, 0.1); color: #3b82f6;">
+                        <i class="bi bi-graph-up"></i>
+                    </div>
+                    <h4 class="fw-bold fs-5 mb-2">Holistic Wellness Analytics</h4>
+                    <p class="text-muted small flex-grow-1">
+                        Interactive Chart.js visualizations examining weekly trends, day-of-week emotional correlations, and holistic wellness scores.
+                    </p>
+                    <a href="{% url 'accounts:login' %}" class="fw-bold text-decoration-none small" style="color: #3b82f6;">View Insights →</a>
+                </div>
+            </div>
+
+            <!-- Financial Wellness -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap" style="background: rgba(245, 158, 11, 0.1); color: #f59e0b;">
+                        <i class="bi bi-cash-coin"></i>
+                    </div>
+                    <h4 class="fw-bold fs-5 mb-2">Financial Peace Planner</h4>
+                    <p class="text-muted small flex-grow-1">
+                        Multi-currency expense tracking and financial stress assessment to dissolve money anxiety and cultivate intentional abundance.
+                    </p>
+                    <a href="{% url 'accounts:login' %}" class="fw-bold text-decoration-none small" style="color: #f59e0b;">Plan Finances →</a>
+                </div>
+            </div>
+
+            <!-- Peer Community -->
+            <div class="col-md-6 col-lg-4">
+                <div class="feature-card">
+                    <div class="feature-icon-wrap" style="background: rgba(16, 185, 129, 0.1); color: #10b981;">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h4 class="fw-bold fs-5 mb-2">Empathetic Peer Forum</h4>
+                    <p class="text-muted small flex-grow-1">
+                        Share stories, receive encouragement, post anonymously, and participate in anonymous peer chat with respectful moderation.
+                    </p>
+                    <a href="{% url 'accounts:login' %}" class="fw-bold text-decoration-none small" style="color: #10b981;">Join Community →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Stats Bar -->
+<section class="stats-bar-section">
+    <div class="container">
+        <div class="row text-center g-4">
+            <div class="col-6 col-md-3">
+                <div class="stat-counter-number">15K+</div>
+                <div class="stat-counter-label">Mood Logs Recorded</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-counter-number">98%</div>
+                <div class="stat-counter-label">Reported Stress Reduction</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-counter-number">400+</div>
+                <div class="stat-counter-label">Curated Quotes & Affirmations</div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-counter-number">24/7</div>
+                <div class="stat-counter-label">Crisis Resource Availability</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Testimonials -->
+<section class="testimonials-section">
+    <div class="container">
+        <div class="section-header">
+            <span class="text-primary fw-bold text-uppercase small">Real Transformations</span>
+            <h2>Voices of Serenity & Healing</h2>
+            <p class="text-muted">Here is what our growing community shares about their experience with Zenalyze.</p>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <div class="mb-3 text-warning">
+                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                    </div>
+                    <p class="text-muted small fst-italic mb-4">
+                        "The Box Breathing feature pulled me out of multiple severe panic attacks during work hours. Having everything in one quiet place has changed my mental resilience."
+                    </p>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="testimonial-avatar">MK</div>
+                        <div>
+                            <div class="fw-bold text-dark small">Mercy K.</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">Product Manager • Nairobi</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <div class="mb-3 text-warning">
+                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                    </div>
+                    <p class="text-muted small fst-italic mb-4">
+                        "The relationship tracker and financial wellness score helped me identify exactly which interactions were draining my energy. It gave me real clarity."
+                    </p>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="testimonial-avatar">JO</div>
+                        <div>
+                            <div class="fw-bold text-dark small">James O.</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">Creative Director • Mombasa</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="testimonial-card">
+                    <div class="mb-3 text-warning">
+                        <i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i><i class="bi bi-star-fill"></i>
+                    </div>
+                    <p class="text-muted small fst-italic mb-4">
+                        "The calm colors, dark mode, and zero clutter make opening Zenalyze feel like taking a deep, clean breath. I love the daily affirmations!"
+                    </p>
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="testimonial-avatar">AL</div>
+                        <div>
+                            <div class="fw-bold text-dark small">Aisha L.</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">University Educator • Kisumu</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Call to Action -->
+<section class="cta-section">
+    <div class="container">
+        <div class="max-w-700 mx-auto" style="max-width: 650px;">
+            <div class="rounded-circle d-inline-flex p-3 bg-primary bg-opacity-10 text-primary mb-3 fs-3">
+                <i class="bi bi-heart-pulse-fill"></i>
+            </div>
+            <h2 class="fw-bold mb-3">Begin Your Journey to Inner Calm Today</h2>
+            <p class="text-muted mb-4">
+                Join thousands of individuals prioritizing their mental peace. Zero pressure, completely free, and always confidential.
+            </p>
+            {% if user.is_authenticated %}
+            <a href="{% url 'wellness:dashboard' %}" class="btn-primary-custom btn-lg">
+                Open Your Dashboard <i class="bi bi-arrow-right ms-2"></i>
+            </a>
+            {% else %}
+            <a href="{% url 'accounts:register' %}" class="btn-primary-custom btn-lg">
+                Create Free Account <i class="bi bi-arrow-right ms-2"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</section>
+{% endblock %}

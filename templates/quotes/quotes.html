@@ -1,0 +1,250 @@
+{% extends "base_dashboard.html" %}
+
+{% block title %}Daily Inspirational Quotes - Zenalyze{% endblock %}
+{% block page_title %}Inspirational Quotes{% endblock %}
+{% block page_subtitle %}Discover wisdom, mindfulness, and strength through our curated collection{% endblock %}
+
+{% block extra_css %}
+<style>
+    .welcome-card {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 2rem 2.5rem;
+        margin-bottom: 2rem;
+    }
+    .daily-quote-feature {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 2.5rem 2rem;
+        text-align: center;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        position: relative;
+    }
+    .daily-quote-feature::before {
+        content: '“';
+        font-family: 'Playfair Display', serif;
+        font-size: 7rem;
+        position: absolute;
+        top: -1.5rem;
+        left: 2rem;
+        opacity: 0.08;
+        color: #667eea;
+        pointer-events: none;
+    }
+    .quote-display-text {
+        font-family: 'Playfair Display', Georgia, serif;
+        font-size: 1.65rem;
+        line-height: 1.6;
+        font-style: italic;
+        color: var(--text-primary);
+        max-width: 800px;
+        margin: 0 auto 1.25rem auto;
+    }
+    .quote-author {
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: #667eea;
+    }
+    .category-filter-bar {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        margin-bottom: 2rem;
+    }
+    .filter-btn {
+        padding: 0.4rem 0.95rem;
+        border-radius: 50px;
+        border: 1px solid var(--border-color);
+        background: var(--card-bg);
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+    .filter-btn:hover, .filter-btn.active {
+        background: #667eea;
+        color: white;
+        border-color: #667eea;
+    }
+    .quotes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+    .quote-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 18px;
+        padding: 1.75rem;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.02);
+        transition: transform 0.25s, box-shadow 0.25s;
+    }
+    .quote-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.06);
+    }
+    .quote-card-text {
+        font-family: 'Playfair Display', serif;
+        font-size: 1.08rem;
+        line-height: 1.6;
+        color: var(--text-primary);
+        margin-bottom: 1.25rem;
+        font-style: italic;
+    }
+    .quote-card-author {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+    .quote-action-icon {
+        background: transparent;
+        border: none;
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+        padding: 0.4rem;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    .quote-action-icon:hover {
+        color: #667eea;
+        background: var(--hover-bg);
+    }
+    .quote-action-icon.favorited {
+        color: #ef4444;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="welcome-card">
+    <h3 class="fw-bold mb-1">✨ Wisdom & Daily Reflections</h3>
+    <p class="text-secondary mb-0">Browse our library of over 400+ motivational and mindfulness quotes.</p>
+</div>
+
+{% if featured_quote %}
+<div class="daily-quote-feature">
+    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 mb-3" style="border-radius: 50px;">
+        <i class="bi bi-star-fill me-1"></i> Quote of the Day
+    </span>
+    <div class="quote-display-text">"{{ featured_quote.quote_text }}"</div>
+    <div class="quote-author">— {{ featured_quote.author }}</div>
+</div>
+{% endif %}
+
+<!-- Category Pills -->
+<div class="category-filter-bar">
+    <a href="{% url 'quotes:quotes' %}" class="filter-btn {% if not current_category or current_category == 'all' %}active{% endif %}">
+        All Quotes ({{ total_count }})
+    </a>
+    <a href="{% url 'quotes:quotes' %}?favorite=true" class="filter-btn {% if is_favorite_filter %}active{% endif %}">
+        <i class="bi bi-heart-fill text-danger me-1"></i> My Favorites
+    </a>
+    {% for cat in categories %}
+    <a href="{% url 'quotes:quotes' %}?category={{ cat }}" class="filter-btn {% if current_category == cat %}active{% endif %}">
+        {{ cat }}
+    </a>
+    {% endfor %}
+</div>
+
+<!-- Quotes Grid -->
+<div class="quotes-grid">
+    {% for quote in page_obj %}
+    <div class="quote-card">
+        <div>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="badge bg-secondary bg-opacity-10 text-secondary" style="border-radius: 6px; font-size: 0.72rem;">
+                    {{ quote.category }}
+                </span>
+                <div class="d-flex gap-1">
+                    <button class="quote-action-icon" onclick="copyQuoteText('{{ quote.quote_text|escapejs }} - {{ quote.author|escapejs }}', this)" title="Copy quote">
+                        <i class="bi bi-clipboard"></i>
+                    </button>
+                    <button class="quote-action-icon {% if quote.id in user_fav_ids %}favorited{% endif %}" onclick="toggleFavoriteQuote({{ quote.id }}, this)" title="Add to favorites">
+                        <i class="bi bi-heart-fill"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="quote-card-text">"{{ quote.quote_text }}"</div>
+        </div>
+        <div class="quote-card-author pt-3 border-top" style="border-color: var(--border-color) !important;">
+            — {{ quote.author }}
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5 text-secondary">
+        <i class="bi bi-quote fs-1 mb-2 d-block text-muted"></i>
+        <h5>No quotes found in this category</h5>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if page_obj.has_other_pages %}
+<div class="d-flex justify-content-center mb-5">
+    <nav>
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if is_favorite_filter %}&favorite=true{% endif %}">
+                    &laquo; Previous
+                </a>
+            </li>
+            {% endif %}
+
+            <li class="page-item active">
+                <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+            </li>
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_category %}&category={{ current_category }}{% endif %}{% if is_favorite_filter %}&favorite=true{% endif %}">
+                    Next &raquo;
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function copyQuoteText(text, btn) {
+        navigator.clipboard.writeText(text).then(() => {
+            const icon = btn.querySelector('i');
+            icon.className = 'bi bi-check-lg text-success';
+            setTimeout(() => { icon.className = 'bi bi-clipboard'; }, 1800);
+        });
+    }
+
+    function toggleFavoriteQuote(quoteId, btn) {
+        fetch(`/quotes/favorite/${quoteId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                if (data.is_favorite) {
+                    btn.classList.add('favorited');
+                } else {
+                    btn.classList.remove('favorited');
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

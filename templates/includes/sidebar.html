@@ -1,0 +1,157 @@
+{% load static %}
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+
+<aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+        <div class="sidebar-logo-icon"><i class="bi bi-heart-pulse-fill"></i></div>
+        <div>
+            <div class="sidebar-logo-text">Zenalyze</div>
+            <div class="sidebar-logo-sub">Wellness Dashboard</div>
+        </div>
+    </div>
+    
+    <div class="sidebar-nav-wrap">
+        <div class="nav-section">Main</div>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="{% url 'wellness:dashboard' %}" class="nav-link {% if active_nav == 'dashboard' %}active{% endif %}">
+                    <i class="bi bi-grid-fill"></i> <span>Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'wellness:mood_log' %}" class="nav-link {% if active_nav == 'mood_log' %}active{% endif %}">
+                    <i class="bi bi-emoji-smile"></i> <span>Mood Tracker</span>
+                    <span class="nav-badge bg-primary bg-opacity-75 text-white">{{ user_stats.mood_count|default:0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'wellness:journal' %}" class="nav-link {% if active_nav == 'journal' %}active{% endif %}">
+                    <i class="bi bi-journal-text"></i> <span>Journal</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'wellness:exercises' %}" class="nav-link {% if active_nav == 'exercises' %}active{% endif %}">
+                    <i class="bi bi-wind"></i> <span>Meditation</span>
+                    <span class="nav-badge bg-success bg-opacity-75 text-white">{{ user_stats.exercise_count|default:0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'wellness:analytics' %}" class="nav-link {% if active_nav == 'analytics' %}active{% endif %}">
+                    <i class="bi bi-graph-up"></i> <span>Analytics</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="nav-section mt-3">Wellness Tools</div>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="{% url 'wellness:financial' %}" class="nav-link {% if active_nav == 'financial' %}active{% endif %}">
+                    <i class="bi bi-cash-coin"></i> <span>Financial Planner</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'wellness:relationships' %}" class="nav-link {% if active_nav == 'relationships' %}active{% endif %}">
+                    <i class="bi bi-hearts"></i> <span>Relationships</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'wellness:motivations' %}" class="nav-link {% if active_nav == 'motivations' %}active{% endif %}">
+                    <i class="bi bi-sun"></i> <span>Daily Motivations</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'therapists:index' %}" class="nav-link {% if active_nav == 'therapists' %}active{% endif %}">
+                    <i class="bi bi-person-badge"></i> <span>Find Therapists</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'quotes:index' %}" class="nav-link {% if active_nav == 'quotes' %}active{% endif %}">
+                    <i class="bi bi-quote"></i> <span>Daily Quotes</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'wellness:history' %}" class="nav-link {% if active_nav == 'history' %}active{% endif %}">
+                    <i class="bi bi-clock-history"></i> <span>Full History</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="nav-section mt-3">Community & Support</div>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="{% url 'community:index' %}" class="nav-link {% if active_nav == 'community' %}active{% endif %}">
+                    <i class="bi bi-people"></i> <span>Community Forum</span>
+                    <span class="nav-badge bg-info bg-opacity-75 text-white">{{ community_stats.total_posts|default:0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'community:anonymous_chat' %}" class="nav-link {% if active_nav == 'anonymous_chat' %}active{% endif %}">
+                    <i class="bi bi-shield-lock"></i> <span>Anonymous Peer Chat</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'community:ai_chat' %}" class="nav-link {% if active_nav == 'ai_chat' %}active{% endif %}">
+                    <i class="bi bi-robot"></i> <span>AI Companion</span>
+                    <span class="nav-badge bg-primary bg-opacity-75 text-white">Zen AI</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'wellness:crisis_help' %}" class="nav-link {% if active_nav == 'crisis' %}active{% endif %} text-danger">
+                    <i class="bi bi-exclamation-triangle-fill text-danger"></i> <span>Crisis Resources</span>
+                </a>
+            </li>
+        </ul>
+
+        {% if user.is_admin_user %}
+        <div class="nav-section mt-3">Administration</div>
+        <ul class="nav-list">
+            <li class="nav-item">
+                <a href="{% url 'administration:dashboard' %}" class="nav-link {% if active_nav == 'admin_dashboard' %}active{% endif %}">
+                    <i class="bi bi-speedometer2"></i> <span>Admin Dashboard</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'administration:users' %}" class="nav-link {% if active_nav == 'admin_users' %}active{% endif %}">
+                    <i class="bi bi-people-fill"></i> <span>Manage Users</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'administration:moderation' %}" class="nav-link {% if active_nav == 'admin_moderation' %}active{% endif %}">
+                    <i class="bi bi-shield-check"></i> <span>Moderation</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'administration:crisis_alerts' %}" class="nav-link {% if active_nav == 'admin_crisis_alerts' %}active{% endif %}">
+                    <i class="bi bi-bell-fill"></i> <span>Crisis Alerts</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a href="{% url 'administration:settings' %}" class="nav-link {% if active_nav == 'admin_settings' %}active{% endif %}">
+                    <i class="bi bi-sliders"></i> <span>System Settings</span>
+                </a>
+            </li>
+        </ul>
+        {% endif %}
+    </div>
+
+    <div class="sidebar-footer">
+        <div class="sidebar-user">
+            <div class="sidebar-avatar">
+                {% if user.avatar_display_url %}
+                    <img src="{{ user.avatar_display_url }}" alt="Avatar">
+                {% else %}
+                    {{ user.display_title|slice:":1"|upper }}
+                {% endif %}
+            </div>
+            <div class="sidebar-user-info">
+                <div class="sidebar-user-name">{{ user.display_title }}</div>
+                <div class="sidebar-user-role">
+                    {% if user.is_admin_user %}Admin{% else %}{{ user.streak_days }} day streak{% endif %}
+                </div>
+            </div>
+            <a href="{% url 'accounts:logout' %}" class="sidebar-logout" title="Sign Out">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</aside>

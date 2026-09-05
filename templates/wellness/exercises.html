@@ -1,0 +1,287 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Meditation & Breathing - Zenalyze{% endblock %}
+{% block topbar_title %}Mindful Practices{% endblock %}
+{% block topbar_subtitle %}Scientifically backed breathwork and somatic meditation exercises{% endblock %}
+
+{% block extra_css %}
+<style>
+    .exercise-card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        padding: 24px;
+        border: 1px solid var(--border-color);
+        transition: all 0.25s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+    .exercise-card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-md);
+        border-color: #667eea;
+    }
+    
+    /* Interactive Breathing Circle Animation */
+    .breathing-modal-circle-wrap {
+        width: 220px;
+        height: 220px;
+        margin: 30px auto;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .breathing-circle {
+        width: 130px;
+        height: 130px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        box-shadow: 0 0 35px rgba(102,126,234,0.4);
+        transition: all 4s ease-in-out;
+    }
+    .breathing-circle.inhale {
+        transform: scale(1.6);
+        background: linear-gradient(135deg, #764ba2, #f093fb);
+        box-shadow: 0 0 60px rgba(118,75,162,0.6);
+    }
+    .breathing-circle.exhale {
+        transform: scale(0.9);
+        background: linear-gradient(135deg, #667eea, #764ba2);
+    }
+    .breath-phase-text {
+        font-size: 1.1rem;
+        font-weight: 700;
+    }
+    .breath-timer-text {
+        font-size: 1.8rem;
+        font-weight: 800;
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid">
+    <!-- Category Filter -->
+    <div class="d-flex flex-wrap gap-2 mb-4">
+        <a href="?cat=" class="btn btn-sm {% if not selected_cat %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">All Practices</a>
+        <a href="?cat=breathing" class="btn btn-sm {% if selected_cat == 'breathing' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Breathing</a>
+        <a href="?cat=meditation" class="btn btn-sm {% if selected_cat == 'meditation' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Meditation</a>
+        <a href="?cat=yoga" class="btn btn-sm {% if selected_cat == 'yoga' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Yoga Flow</a>
+        <a href="?cat=mindfulness" class="btn btn-sm {% if selected_cat == 'mindfulness' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Grounding</a>
+    </div>
+
+    <!-- Exercises Grid -->
+    <div class="row g-4 mb-5">
+        {% for ex in exercises %}
+        <div class="col-md-6 col-lg-4">
+            <div class="exercise-card">
+                <div>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <span class="badge bg-primary bg-opacity-10 text-primary fw-bold text-uppercase px-3 py-2 rounded-pill small">
+                            {{ ex.category }}
+                        </span>
+                        <span class="text-muted small fw-semibold">
+                            <i class="bi bi-clock me-1 text-primary"></i> {{ ex.duration_minutes }} mins
+                        </span>
+                    </div>
+                    <h5 class="fw-bold mb-2" style="color: var(--text-primary);">{{ ex.title }}</h5>
+                    <p class="text-secondary small mb-3">{{ ex.description }}</p>
+
+                    {% if ex.benefits %}
+                    <div class="p-2 rounded bg-light small text-muted mb-3" style="font-size: 0.78rem;">
+                        <strong>Benefits:</strong> {{ ex.benefits }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+                    <span class="badge bg-secondary bg-opacity-10 text-secondary text-capitalize">
+                        {{ ex.difficulty_level }}
+                    </span>
+                    <button class="btn btn-primary btn-sm rounded-pill px-3 fw-bold" 
+                            onclick="startExercise('{{ ex.id }}', '{{ ex.title|escapejs }}', {{ ex.duration_minutes }})">
+                        <i class="bi bi-play-fill me-1"></i> Start Session
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Recent Session Logs -->
+    <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
+        <h5 class="fw-bold mb-3" style="color: var(--text-primary);"><i class="bi bi-check2-all text-success me-2"></i> Recent Completed Practices</h5>
+        {% if history %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="text-muted small">
+                    <tr>
+                        <th>Practice Title</th>
+                        <th>Duration</th>
+                        <th>Mood Shift</th>
+                        <th>Completed At</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for h in history %}
+                    <tr>
+                        <td class="fw-bold" style="color: var(--text-primary);">{{ h.exercise.title }}</td>
+                        <td>{{ h.duration_minutes }} minutes</td>
+                        <td>
+                            <span class="badge bg-light text-muted">{{ h.mood_before }}/10</span>
+                            <i class="bi bi-arrow-right text-success mx-1"></i>
+                            <span class="badge bg-success text-white">{{ h.mood_after }}/10</span>
+                        </td>
+                        <td class="text-muted">{{ h.created_at|date:"M d, Y • g:i A" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted small">No practice sessions logged yet. Select any practice above to begin!</div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Interactive Breathing Modal -->
+<div class="modal fade" id="breathingModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 text-center p-4" style="background: var(--card-bg);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold w-100" id="modalExTitle">Mindful Breathing</h5>
+                <button type="button" class="btn-close" onclick="stopBreathing()" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body py-4">
+                <div class="breathing-modal-circle-wrap">
+                    <div class="breathing-circle" id="breathCircle">
+                        <div class="breath-phase-text" id="breathPhase">Get Ready</div>
+                        <div class="breath-timer-text" id="breathTimer">4</div>
+                    </div>
+                </div>
+                <div class="text-muted small mb-4" id="cycleStatus">Cycle: 1 of 4</div>
+
+                <div id="sessionCompletionBox" style="display: none;" class="text-start border-top pt-3">
+                    <h6 class="fw-bold text-success mb-2"><i class="bi bi-check-circle-fill me-1"></i> Session Complete!</h6>
+                    <form method="POST" action="{% url 'wellness:exercises' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="exercise_id" id="compExId">
+                        <input type="hidden" name="duration" id="compDuration">
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="small text-muted fw-bold">Mood Before</label>
+                                <input type="number" name="mood_before" class="form-control form-control-sm" min="1" max="10" value="5">
+                            </div>
+                            <div class="col-6">
+                                <label class="small text-muted fw-bold">Mood Now</label>
+                                <input type="number" name="mood_after" class="form-control form-control-sm" min="1" max="10" value="8">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-success btn-sm w-100 rounded-pill fw-bold">
+                            Save Session to History
+                        </button>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer border-0 justify-content-center pt-0">
+                <button type="button" class="btn btn-outline-secondary rounded-pill px-4 btn-sm" onclick="stopBreathing()" data-bs-dismiss="modal">
+                    Close Practice
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let breathInterval = null;
+    let currentExId = null;
+    let currentDuration = 5;
+
+    function startExercise(id, title, duration) {
+        currentExId = id;
+        currentDuration = duration;
+        document.getElementById('modalExTitle').innerText = title;
+        document.getElementById('compExId').value = id;
+        document.getElementById('compDuration').value = duration;
+        document.getElementById('sessionCompletionBox').style.display = 'none';
+        
+        const modal = new bootstrap.Modal(document.getElementById('breathingModal'));
+        modal.show();
+
+        runBreathingCycle();
+    }
+
+    function runBreathingCycle() {
+        const circle = document.getElementById('breathCircle');
+        const phase = document.getElementById('breathPhase');
+        const timer = document.getElementById('breathTimer');
+
+        let cycle = 1;
+        const totalCycles = 4;
+        let step = 0; // 0: inhale (4s), 1: hold (4s), 2: exhale (4s), 3: hold empty (4s)
+
+        function tick() {
+            if (cycle > totalCycles) {
+                clearInterval(breathInterval);
+                phase.innerText = 'Completed';
+                timer.innerText = '✨';
+                circle.className = 'breathing-circle';
+                document.getElementById('sessionCompletionBox').style.display = 'block';
+                return;
+            }
+
+            document.getElementById('cycleStatus').innerText = `Cycle: ${cycle} of ${totalCycles}`;
+
+            if (step === 0) {
+                circle.className = 'breathing-circle inhale';
+                phase.innerText = 'Inhale';
+                countdown(4, () => { step = 1; tick(); });
+            } else if (step === 1) {
+                phase.innerText = 'Hold';
+                countdown(4, () => { step = 2; tick(); });
+            } else if (step === 2) {
+                circle.className = 'breathing-circle exhale';
+                phase.innerText = 'Exhale';
+                countdown(4, () => { step = 3; tick(); });
+            } else if (step === 3) {
+                phase.innerText = 'Hold Empty';
+                countdown(4, () => {
+                    step = 0;
+                    cycle++;
+                    tick();
+                });
+            }
+        }
+
+        tick();
+    }
+
+    function countdown(seconds, callback) {
+        let remaining = seconds;
+        document.getElementById('breathTimer').innerText = remaining;
+        const cd = setInterval(() => {
+            remaining--;
+            if (remaining > 0) {
+                document.getElementById('breathTimer').innerText = remaining;
+            } else {
+                clearInterval(cd);
+                callback();
+            }
+        }, 1000);
+    }
+
+    function stopBreathing() {
+        clearInterval(breathInterval);
+    }
+</script>
+{% endblock %}

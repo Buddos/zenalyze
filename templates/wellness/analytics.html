@@ -1,0 +1,201 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Analytics - Zenalyze{% endblock %}
+{% block topbar_title %}Holistic Analytics{% endblock %}
+{% block topbar_subtitle %}Insights into your mood trends, habits, and emotional rhythms{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-card {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: var(--shadow-sm);
+        height: 100%;
+    }
+    .metric-pill {
+        padding: 16px;
+        border-radius: 14px;
+        background: var(--bg-primary);
+        border: 1px solid var(--border-color);
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid">
+    <!-- Period Filters -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div class="d-flex flex-wrap gap-2">
+            <a href="?period=7days" class="btn btn-sm {% if period == '7days' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Last 7 Days</a>
+            <a href="?period=30days" class="btn btn-sm {% if period == '30days' or not period %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Last 30 Days</a>
+            <a href="?period=90days" class="btn btn-sm {% if period == '90days' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Last 90 Days</a>
+            <a href="?period=year" class="btn btn-sm {% if period == 'year' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Past Year</a>
+        </div>
+        <a href="{% url 'wellness:report' %}" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+            <i class="bi bi-file-earmark-pdf me-1"></i> Generate Report
+        </a>
+    </div>
+
+    <!-- Summary Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="metric-pill">
+                <div class="small text-muted mb-1">Average Mood</div>
+                <div class="fs-3 fw-bold" style="color: #667eea;">{{ mood_stats.avg_mood|floatformat:1 }}/10</div>
+                <div class="small text-muted">{{ mood_stats.total_entries }} check-ins recorded</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-pill">
+                <div class="small text-muted mb-1">Stress vs Energy</div>
+                <div class="fs-3 fw-bold" style="color: #f59e0b;">{{ mood_stats.avg_stress|floatformat:1 }} / {{ mood_stats.avg_energy|floatformat:1 }}</div>
+                <div class="small text-muted">Stress / Energy index (1-10)</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-pill">
+                <div class="small text-muted mb-1">Meditation Minutes</div>
+                <div class="fs-3 fw-bold" style="color: #10b981;">{{ exercise_stats.total_minutes|default:0 }}m</div>
+                <div class="small text-muted">{{ exercise_stats.total_sessions|default:0 }} sessions completed</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="metric-pill">
+                <div class="small text-muted mb-1">Overall Wellness Score</div>
+                <div class="fs-3 fw-bold" style="color: #3b82f6;">{{ wellness_score }}%</div>
+                <div class="small text-muted">Holistic consistency score</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="analytics-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0" style="color: var(--text-primary);"><i class="bi bi-graph-up text-primary me-2"></i> Emotional Trajectory</h5>
+                </div>
+                <div style="height: 280px;">
+                    <canvas id="trendChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="analytics-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0" style="color: var(--text-primary);"><i class="bi bi-calendar3 text-success me-2"></i> Mood by Day of Week</h5>
+                </div>
+                <div style="height: 280px;">
+                    <canvas id="dayOfWeekChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Habits Breakdown -->
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="analytics-card">
+                <h5 class="fw-bold mb-3" style="color: var(--text-primary);"><i class="bi bi-heart-pulse text-danger me-2"></i> Practice Categories Breakdown</h5>
+                {% if exercise_by_category %}
+                <ul class="list-group list-group-flush small">
+                    {% for cat in exercise_by_category %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent py-3" style="color: var(--text-primary);">
+                        <span class="text-capitalize fw-bold">{{ cat.exercise__category }}</span>
+                        <span>{{ cat.sessions }} sessions ({{ cat.total_minutes }} mins)</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="text-muted small py-4 text-center">No category data recorded yet for this period.</div>
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="analytics-card">
+                <h5 class="fw-bold mb-3" style="color: var(--text-primary);"><i class="bi bi-lightning-charge text-warning me-2"></i> Relationship Energy Impact</h5>
+                <div class="d-flex justify-content-around text-center py-4">
+                    <div>
+                        <div class="fs-4 fw-bold text-success">{{ relationship_stats.energizing|default:0 }}</div>
+                        <div class="small text-muted">Energizing</div>
+                    </div>
+                    <div>
+                        <div class="fs-4 fw-bold text-secondary">{{ relationship_stats.neutral|default:0 }}</div>
+                        <div class="small text-muted">Neutral</div>
+                    </div>
+                    <div>
+                        <div class="fs-4 fw-bold text-danger">{{ relationship_stats.draining|default:0 }}</div>
+                        <div class="small text-muted">Draining</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Trend Chart
+        const trendCtx = document.getElementById('trendChart')?.getContext('2d');
+        if (trendCtx) {
+            new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: [{% for item in trend_data %}'{{ item.date }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    datasets: [{
+                        label: 'Average Mood',
+                        data: [{% for item in trend_data %}{{ item.avg_mood }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.08)',
+                        tension: 0.35,
+                        fill: true,
+                        pointBackgroundColor: '#667eea',
+                        pointBorderColor: '#fff',
+                        pointBorderWidth: 2,
+                        pointRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, max: 10, ticks: { font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+
+        // Day of Week Chart
+        const dowCtx = document.getElementById('dayOfWeekChart')?.getContext('2d');
+        if (dowCtx) {
+            new Chart(dowCtx, {
+                type: 'bar',
+                data: {
+                    labels: [{% for item in mood_by_day %}'{{ item.day_name }}'{% if not forloop.last %}, {% endif %}{% endfor %}],
+                    datasets: [{
+                        label: 'Avg Score',
+                        data: [{% for item in mood_by_day %}{{ item.avg_mood }}{% if not forloop.last %}, {% endif %}{% endfor %}],
+                        backgroundColor: '#7FB685',
+                        borderRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true, max: 10, ticks: { font: { size: 10 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,144 @@
+{% extends 'base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Relationships - Zenalyze{% endblock %}
+{% block topbar_title %}Relationship Health Advisor{% endblock %}
+{% block topbar_subtitle %}Understand which connections energize your spirit and set healthy boundaries{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h5 class="fw-bold mb-0" style="color: var(--text-primary);">Social Energy Dynamics</h5>
+            <span class="small text-muted">Protect your peace by honoring your emotional battery</span>
+        </div>
+        <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#newRelModal">
+            <i class="bi bi-plus-lg me-1"></i> Log Connection
+        </button>
+    </div>
+
+    <!-- Energy Metrics -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
+                <div class="small text-muted mb-1">Energizing Encounters</div>
+                <div class="fs-3 fw-bold text-success">{{ energizing_count }}</div>
+                <div class="small text-muted">Left you feeling lifted & supported</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
+                <div class="small text-muted mb-1">Neutral Encounters</div>
+                <div class="fs-3 fw-bold text-secondary">{{ neutral_count }}</div>
+                <div class="small text-muted">Even baseline interactions</div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
+                <div class="small text-muted mb-1">Draining Encounters</div>
+                <div class="fs-3 fw-bold text-danger">{{ draining_count }}</div>
+                <div class="small text-muted">Exhausted your emotional capacity</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Log List -->
+    <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
+        <h5 class="fw-bold mb-3" style="color: var(--text-primary);"><i class="bi bi-people text-primary me-2"></i> Recent Interactions</h5>
+        {% if entries %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="text-muted small">
+                    <tr>
+                        <th>Person / Relationship</th>
+                        <th>Quality</th>
+                        <th>Emotional Energy</th>
+                        <th>Notes</th>
+                        <th>Date</th>
+                    </tr>
+                </thead>
+                <tbody class="small">
+                    {% for item in entries %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold" style="color: var(--text-primary);">{{ item.person_name }}</div>
+                            <div class="text-muted text-capitalize" style="font-size: 0.75rem;">{{ item.relationship_type }}</div>
+                        </td>
+                        <td>
+                            <span class="badge bg-light text-dark">{{ item.interaction_quality }}/10</span>
+                        </td>
+                        <td>
+                            {% if item.emotional_energy == 'energizing' %}
+                            <span class="badge bg-success bg-opacity-10 text-success fw-bold">⚡ Energizing</span>
+                            {% elif item.emotional_energy == 'draining' %}
+                            <span class="badge bg-danger bg-opacity-10 text-danger fw-bold">🔻 Draining</span>
+                            {% else %}
+                            <span class="badge bg-secondary bg-opacity-10 text-secondary fw-bold">➖ Neutral</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-muted">{{ item.notes|default:"—" }}</td>
+                        <td class="text-muted">{{ item.created_at|date:"M d, Y" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted small">
+            No relationship interactions logged yet. Click "Log Connection" to record your first one!
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="newRelModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 p-4" style="background: var(--card-bg);">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" style="color: var(--text-primary);">Log Relationship Interaction</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{% url 'wellness:relationships' %}">
+                {% csrf_token %}
+                <div class="modal-body py-3">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Person's Name</label>
+                        <input type="text" class="form-control rounded-3" name="person_name" required placeholder="e.g. Alex, Mom, Co-worker">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Relationship Type</label>
+                        <select class="form-select rounded-3" name="relationship_type">
+                            <option value="friend">Friend</option>
+                            <option value="partner">Partner / Spouse</option>
+                            <option value="family">Family Member</option>
+                            <option value="colleague">Colleague / Work</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Interaction Quality (1 to 10)</label>
+                        <input type="range" class="form-range" min="1" max="10" value="7" name="interaction_quality">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">How did this interaction leave you feeling?</label>
+                        <select class="form-select rounded-3" name="emotional_energy">
+                            <option value="energizing">⚡ Energizing - Lifted, inspired, heard</option>
+                            <option value="neutral">➖ Neutral - Ordinary, calm</option>
+                            <option value="draining">🔻 Draining - Depleted, stressed, heavy</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Reflective Notes</label>
+                        <textarea class="form-control rounded-3" name="notes" rows="3" placeholder="What boundaries or realizations came up?"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4 btn-sm fw-bold">Save Log</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
