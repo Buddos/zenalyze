@@ -31,7 +31,7 @@
 
 ## 🌟 About the Project
 
-Zenalyze is a full-stack **mental health & wellness platform** built with **Django 6** and backed by **Supabase (PostgreSQL)**. Originally converted from a PHP application, it provides an integrated, secure environment for personal wellness tracking.
+Zenalyze is a full-stack **mental health & wellness platform** built with **Django 6** and backed by **Supabase (PostgreSQL)**. It provides an integrated, secure environment for personal wellness tracking.
 
 ### Key Goals
 - Reduce stigma around mental health through private, secure journaling
