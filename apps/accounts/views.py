@@ -9,10 +9,12 @@ import urllib.parse
 import secrets
 import os
 import requests as http_requests
+from django.conf import settings
 
 from .models import User, UserSettings, UserActivityLog
 
-# Google OAuth2 settings (loaded from .env / environment)
+# Firebase & Google OAuth2 settings
+FIREBASE_API_KEY     = getattr(settings, 'FIREBASE_API_KEY', os.environ.get('FIREBASE_API_KEY', 'AIzaSyDwdpQKLtsANsZhPVoqXZ2rjF4tghp-NpQ'))
 GOOGLE_CLIENT_ID     = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI  = os.environ.get('GOOGLE_REDIRECT_URI', 'http://localhost:8000/auth/google/callback/')
@@ -183,7 +185,118 @@ def update_theme_api(request):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 
-# ─── Google OAuth2 ─────────────────────────────────────────────────────────────
+# ─── Firebase Google Authentication ───────────────────────────────────────────
+
+@csrf_exempt
+def google_auth_view(request):
+    """Handles Google sign-in and sign-up via Firebase Auth.
+    Receives an ID token from the frontend Firebase JavaScript SDK,
+    verifies it with Google's Identity Toolkit, and logs the user in."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        id_token = body.get('id_token', '').strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid request body'}, status=400)
+
+    if not id_token:
+        return JsonResponse({'status': 'error', 'message': 'No ID token provided'}, status=400)
+
+    google_email = None
+    google_name = ''
+    google_picture = ''
+    email_verified = False
+
+    # 1. Verify token with Firebase Identity Toolkit
+    try:
+        verify_url = f'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={FIREBASE_API_KEY}'
+        resp = http_requests.post(verify_url, json={'idToken': id_token}, timeout=10)
+        resp_data = resp.json()
+
+        if resp.status_code == 200 and 'users' in resp_data and len(resp_data['users']) > 0:
+            fb_user = resp_data['users'][0]
+            google_email = fb_user.get('email', '').lower().strip()
+            google_name = fb_user.get('displayName', '').strip()
+            google_picture = fb_user.get('photoUrl', '').strip()
+            email_verified = fb_user.get('emailVerified', False)
+    except Exception as exc:
+        pass
+
+    # 2. Fallback: Google OAuth2 tokeninfo endpoint
+    if not google_email:
+        try:
+            tokeninfo_url = f'https://oauth2.googleapis.com/tokeninfo?id_token={id_token}'
+            resp = http_requests.get(tokeninfo_url, timeout=10)
+            if resp.status_code == 200:
+                t_data = resp.json()
+                google_email = t_data.get('email', '').lower().strip()
+                google_name = t_data.get('name', '').strip()
+                google_picture = t_data.get('picture', '').strip()
+                email_verified = t_data.get('email_verified', False) in (True, 'true')
+        except Exception:
+            pass
+
+    if not google_email:
+        return JsonResponse({'status': 'error', 'message': 'Could not verify Firebase/Google token'}, status=401)
+
+    # 3. Find or create Django User
+    created = False
+    try:
+        user = User.objects.get(email=google_email)
+    except User.DoesNotExist:
+        base_username = google_email.split('@')[0].replace('.', '_')[:28]
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        user = User.objects.create_user(
+            username=username,
+            email=google_email,
+            password=None,  # Google-only account
+            full_name=google_name or username,
+            role='user',
+        )
+        if google_picture:
+            user.avatar_url = google_picture
+            user.save(update_fields=['avatar_url'])
+
+        UserSettings.objects.get_or_create(user=user, defaults={'theme': 'light'})
+        created = True
+
+    if not user.is_active:
+        return JsonResponse({'status': 'error', 'message': 'This account is suspended.'}, status=403)
+
+    if google_picture and not user.avatar_url:
+        user.avatar_url = google_picture
+        user.save(update_fields=['avatar_url'])
+
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
+    UserActivityLog.objects.create(
+        user=user,
+        action='google_register' if created else 'google_login',
+        details=f'Firebase Google Sign-In ({google_email})',
+        ip_address=request.META.get('REMOTE_ADDR'),
+        user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
+    )
+
+    if created:
+        messages.success(request, f"Welcome to Zenalyze, {user.display_title}! Your account has been created via Google.")
+    else:
+        messages.success(request, f"Welcome back, {user.display_title}!")
+
+    return JsonResponse({
+        'status': 'ok',
+        'created': created,
+        'redirect': '/dashboard/',
+    })
+
+
+# ─── Google OAuth2 (Redirect Flow Fallback) ───────────────────────────────────
 
 def google_login_redirect(request):
     """Step 1: Redirect the user to Google's OAuth2 consent screen."""

@@ -122,6 +122,11 @@ SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://cpmjwdmjgkqxehjkvhgb.supa
 SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY', os.environ.get('SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_XVquVHtAOOOi5UDp9N2O7w_RZCHK4uS'))
 SUPABASE_PROJECT_ID = os.environ.get('SUPABASE_PROJECT_ID', 'cpmjwdmjgkqxehjkvhgb')
 
+# Firebase Configuration
+FIREBASE_API_KEY = os.environ.get('FIREBASE_API_KEY', 'AIzaSyDwdpQKLtsANsZhPVoqXZ2rjF4tghp-NpQ')
+FIREBASE_PROJECT_ID = os.environ.get('FIREBASE_PROJECT_ID', 'zenalyze-b2f49')
+FIREBASE_AUTH_DOMAIN = os.environ.get('FIREBASE_AUTH_DOMAIN', 'zenalyze-b2f49.firebaseapp.com')
+
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'
 
