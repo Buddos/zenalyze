@@ -107,4 +107,22 @@ for r in admin_routes:
     assert res.status_code == 200, f"Failed admin route {r}: status {res.status_code}"
     print(f"  [OK] {r} -> 200")
 
+print("\n--- 5. Testing Django Admin Routes (/admin, /admin/, /django-admin/) ---")
+# Test unauthenticated redirects to login
+client.logout()
+res_unauth_admin = client.get('/admin')
+assert res_unauth_admin.status_code == 301, f"Expected 301 redirect for /admin, got {res_unauth_admin.status_code}"
+print(f"  [OK] /admin -> 301 redirect to {res_unauth_admin.url}")
+
+res_unauth_login = client.get('/admin', follow=True)
+assert res_unauth_login.status_code == 200 and '/admin/login/' in res_unauth_login.request['PATH_INFO']
+print(f"  [OK] /admin (followed) -> 200 at {res_unauth_login.request['PATH_INFO']}")
+
+# Test authenticated admin access
+client.login(username='admin', password='Admin@zenalyze123')
+for admin_endpoint in ['/admin/', '/admin', '/django-admin/', '/django-admin']:
+    res = client.get(admin_endpoint, follow=True)
+    assert res.status_code == 200, f"Failed Django Admin route {admin_endpoint}: status {res.status_code}"
+    print(f"  [OK] {admin_endpoint} -> 200 at {res.request['PATH_INFO']}")
+
 print("\n🎉 ALL ROUTES AND CAPABILITIES VERIFIED 100% WORKING!")

@@ -9,9 +9,14 @@ def legacy_redirect(target):
         return redirect(target, permanent=True)
     return view
 
+# Configure Django Admin Branding
+admin.site.site_header = "Zenalyze Administration"
+admin.site.site_title = "Zenalyze Admin Portal"
+admin.site.index_title = "Zenalyze Management & Database Control"
+
 urlpatterns = [
-    # Django Admin site
-    path('django-admin/', admin.site.urls),
+    # Custom Administration endpoints (must precede admin.site.urls so specific routes like /admin/users/ are caught first)
+    path('', include('apps.administration.urls')),
 
     # Application endpoints
     path('', include('apps.core.urls')),
@@ -21,7 +26,10 @@ urlpatterns = [
     path('', include('apps.quotes.urls')),
     path('', include('apps.therapists.urls')),
     path('', include('apps.notifications.urls')),
-    path('', include('apps.administration.urls')),
+
+    # Django Admin site
+    path('admin/', admin.site.urls),
+    path('django-admin/', legacy_redirect('/admin/')),
 
     # Legacy PHP Redirects for seamless backwards compatibility
     path('index.php', legacy_redirect('/')),

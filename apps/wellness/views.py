@@ -167,7 +167,17 @@ def toggle_journal_favorite(request, entry_id):
     entry = get_object_or_404(JournalEntry, id=entry_id, user=request.user)
     entry.is_favorite = not entry.is_favorite
     entry.save(update_fields=['is_favorite'])
-    return JsonResponse({'status': 'ok', 'is_favorite': entry.is_favorite})
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or 'application/json' in request.headers.get('Accept', ''):
+        return JsonResponse({'status': 'ok', 'is_favorite': entry.is_favorite})
+    return redirect('wellness:journal')
+
+@login_required
+def delete_journal_entry(request, entry_id):
+    if request.method == 'POST':
+        entry = get_object_or_404(JournalEntry, id=entry_id, user=request.user)
+        entry.delete()
+        messages.success(request, "Journal reflection deleted.")
+    return redirect('wellness:journal')
 
 @login_required
 def exercises_view(request):
@@ -314,6 +324,14 @@ def financial_view(request):
         'total_expenses': total_expenses,
         'net_savings': net_savings,
     })
+
+@login_required
+def delete_financial_entry(request, entry_id):
+    if request.method == 'POST':
+        entry = get_object_or_404(FinancialEntry, id=entry_id, user=request.user)
+        entry.delete()
+        messages.success(request, "Financial transaction deleted.")
+    return redirect('wellness:financial')
 
 @login_required
 def relationships_view(request):

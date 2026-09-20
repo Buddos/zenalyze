@@ -6,9 +6,13 @@ Converted from PHP to Python Django.
 from pathlib import Path
 import os
 import sys
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Load environment variables from .env
+load_dotenv(BASE_DIR / '.env')
 
 # Add apps to sys.path
 sys.path.insert(0, str(BASE_DIR / 'apps'))
@@ -72,12 +76,43 @@ TEMPLATES = [
 WSGI_APPLICATION = 'zenalyze_project.wsgi.application'
 
 # Database
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# If DATABASE_URL or SUPABASE_DB_PASSWORD is provided in .env, connect to Supabase PostgreSQL.
+# Otherwise, fall back gracefully to local SQLite.
+DATABASE_URL = os.environ.get('Dhttps://cpmjwdmjgkqxehjkvhgb.supabase.co')
+SUPABASE_DB_PASSWORD = os.environ.get('Winnerbonnie@2004')
+
+if DATABASE_URL:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=DATABASE_URL,
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
     }
-}
+elif SUPABASE_DB_PASSWORD:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('SUPABASE_DB_NAME', 'postgres'),
+            'USER': os.environ.get('SUPABASE_DB_USER', f"postgres.{os.environ.get('SUPABASE_PROJECT_ID', 'cpmjwdmjgkqxehjkvhgb')}"),
+            'PASSWORD': SUPABASE_DB_PASSWORD,
+            'HOST': os.environ.get('SUPABASE_DB_HOST', 'aws-0-eu-central-1.pooler.supabase.com'),
+            'PORT': os.environ.get('SUPABASE_DB_PORT', '6543'),
+        }
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+# Supabase API Configuration
+SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://cpmjwdmjgkqxehjkvhgb.supabase.co')
+SUPABASE_ANON_KEY = os.environ.get('SUPABASE_ANON_KEY', os.environ.get('SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_XVquVHtAOOOi5UDp9N2O7w_RZCHK4uS'))
+SUPABASE_PROJECT_ID = os.environ.get('SUPABASE_PROJECT_ID', 'cpmjwdmjgkqxehjkvhgb')
 
 # Custom User Model
 AUTH_USER_MODEL = 'accounts.User'

@@ -160,6 +160,9 @@
             <a href="{% url 'administration:logs' %}" class="admin-nav-item {% if request.resolver_match.url_name == 'logs' %}active{% endif %}">
                 <i class="bi bi-journal-text"></i> Audit & Activity Logs
             </a>
+            <a href="/admin/" class="admin-nav-item text-warning" target="_blank">
+                <i class="bi bi-database-gear"></i> Django Admin (Database)
+            </a>
             <a href="{% url 'wellness:dashboard' %}" class="admin-nav-item mt-3 text-info">
                 <i class="bi bi-box-arrow-up-right"></i> Back to User Portal
             </a>
