@@ -5,10 +5,17 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
-import urllib.request
-import urllib.error
+import urllib.parse
+import secrets
+import os
+import requests as http_requests
 
 from .models import User, UserSettings, UserActivityLog
+
+# Google OAuth2 settings (loaded from .env / environment)
+GOOGLE_CLIENT_ID     = os.environ.get('GOOGLE_CLIENT_ID', '')
+GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
+GOOGLE_REDIRECT_URI  = os.environ.get('GOOGLE_REDIRECT_URI', 'http://localhost:8000/auth/google/callback/')
 
 def login_view(request):
     if request.user.is_authenticated:
@@ -176,58 +183,118 @@ def update_theme_api(request):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 
-@csrf_exempt
-def google_auth_view(request):
-    """Receives a Firebase/Google ID token from the frontend,
-    verifies it with Google tokeninfo, then logs the user in
-    (creating a Zenalyze account automatically if needed)."""
-    if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+# ─── Google OAuth2 ─────────────────────────────────────────────────────────────
 
+def google_login_redirect(request):
+    """Step 1: Redirect the user to Google's OAuth2 consent screen."""
+    if not GOOGLE_CLIENT_ID:
+        messages.error(request, "Google Sign-In is not configured yet. Please ask the admin to add GOOGLE_CLIENT_ID to .env")
+        return redirect('accounts:login')
+
+    # Generate a random state token to prevent CSRF
+    state = secrets.token_urlsafe(32)
+    request.session['google_oauth_state'] = state
+    # Remember where to go after login
+    next_url = request.GET.get('next', '/dashboard/')
+    request.session['google_oauth_next'] = next_url
+
+    params = urllib.parse.urlencode({
+        'client_id':     GOOGLE_CLIENT_ID,
+        'redirect_uri':  GOOGLE_REDIRECT_URI,
+        'response_type': 'code',
+        'scope':         'openid email profile',
+        'state':         state,
+        'access_type':   'online',
+        'prompt':        'select_account',
+    })
+    return redirect(f'https://accounts.google.com/o/oauth2/v2/auth?{params}')
+
+
+def google_oauth_callback(request):
+    """Step 2: Google redirects back here with an authorization code.
+    Exchange it for tokens, verify identity, then create/log-in the user."""
+
+    # ── Security: verify state ──────────────────────────────────────────────
+    state_in_session = request.session.pop('google_oauth_state', None)
+    state_from_google = request.GET.get('state', '')
+    if not state_in_session or state_in_session != state_from_google:
+        messages.error(request, 'Google sign-in failed: invalid state. Please try again.')
+        return redirect('accounts:login')
+
+    error = request.GET.get('error')
+    if error:
+        if error == 'access_denied':
+            messages.info(request, 'Google sign-in was cancelled.')
+        else:
+            messages.error(request, f'Google sign-in error: {error}')
+        return redirect('accounts:login')
+
+    code = request.GET.get('code')
+    if not code:
+        messages.error(request, 'No authorization code received from Google.')
+        return redirect('accounts:login')
+
+    # ── Exchange code for tokens ────────────────────────────────────────────
     try:
-        body = json.loads(request.body)
-        id_token = body.get('id_token', '').strip()
-    except (json.JSONDecodeError, AttributeError):
-        return JsonResponse({'status': 'error', 'message': 'Invalid request body'}, status=400)
+        token_resp = http_requests.post(
+            'https://oauth2.googleapis.com/token',
+            data={
+                'code':          code,
+                'client_id':     GOOGLE_CLIENT_ID,
+                'client_secret': GOOGLE_CLIENT_SECRET,
+                'redirect_uri':  GOOGLE_REDIRECT_URI,
+                'grant_type':    'authorization_code',
+            },
+            timeout=10
+        )
+        token_data = token_resp.json()
+    except Exception as exc:
+        messages.error(request, f'Could not contact Google servers: {exc}')
+        return redirect('accounts:login')
 
-    if not id_token:
-        return JsonResponse({'status': 'error', 'message': 'No ID token provided'}, status=400)
+    if 'error' in token_data:
+        messages.error(request, f'Google token error: {token_data["error_description"]}')
+        return redirect('accounts:login')
 
-    # Verify the token with Google tokeninfo endpoint
+    access_token = token_data.get('access_token')
+
+    # ── Fetch the user's Google profile ─────────────────────────────────────
     try:
-        url = f'https://oauth2.googleapis.com/tokeninfo?id_token={id_token}'
-        with urllib.request.urlopen(url, timeout=10) as resp:
-            token_data = json.loads(resp.read().decode())
-    except urllib.error.HTTPError as e:
-        return JsonResponse({'status': 'error', 'message': 'Invalid Google token'}, status=401)
-    except Exception:
-        return JsonResponse({'status': 'error', 'message': 'Could not verify token'}, status=500)
+        profile_resp = http_requests.get(
+            'https://www.googleapis.com/oauth2/v2/userinfo',
+            headers={'Authorization': f'Bearer {access_token}'},
+            timeout=10
+        )
+        profile = profile_resp.json()
+    except Exception as exc:
+        messages.error(request, f'Could not fetch Google profile: {exc}')
+        return redirect('accounts:login')
 
-    google_email = token_data.get('email', '').lower()
-    google_name  = token_data.get('name', '')
-    google_picture = token_data.get('picture', '')
-    email_verified = token_data.get('email_verified', 'false') == 'true'
+    google_email   = profile.get('email', '').lower()
+    google_name    = profile.get('name', '')
+    google_picture = profile.get('picture', '')
+    email_verified = profile.get('verified_email', False)
 
     if not google_email or not email_verified:
-        return JsonResponse({'status': 'error', 'message': 'Email not verified by Google'}, status=401)
+        messages.error(request, 'Google account has no verified email. Please use a different account.')
+        return redirect('accounts:login')
 
-    # Get or create the Django user
+    # ── Get or create Django user ────────────────────────────────────────────
     created = False
     try:
         user = User.objects.get(email=google_email)
     except User.DoesNotExist:
-        # Auto-generate a username from the email prefix
-        base_username = google_email.split('@')[0].replace('.', '_')[:30]
+        base_username = google_email.split('@')[0].replace('.', '_')[:28]
         username = base_username
-        counter = 1
+        counter  = 1
         while User.objects.filter(username=username).exists():
-            username = f"{base_username}{counter}"
+            username = f'{base_username}{counter}'
             counter += 1
 
         user = User.objects.create_user(
             username=username,
             email=google_email,
-            password=None,          # No password — Google-only account
+            password=None,      # Google-only account, no password
             full_name=google_name,
             role='user',
         )
@@ -239,19 +306,24 @@ def google_auth_view(request):
         created = True
 
     if not user.is_active:
-        return JsonResponse({'status': 'error', 'message': 'This account is suspended.'}, status=403)
+        messages.error(request, 'This account is suspended. Please contact support.')
+        return redirect('accounts:login')
 
+    # ── Log in ───────────────────────────────────────────────────────────────
     login(request, user, backend='django.contrib.auth.backends.ModelBackend')
 
     UserActivityLog.objects.create(
         user=user,
-        action='google_login' if not created else 'google_register',
-        details=f'Signed in via Google ({google_email})',
+        action='google_register' if created else 'google_login',
+        details=f'Google OAuth sign-in ({google_email})',
         ip_address=request.META.get('REMOTE_ADDR'),
     )
 
-    return JsonResponse({
-        'status': 'ok',
-        'created': created,
-        'redirect': '/dashboard/',
-    })
+    if created:
+        messages.success(request, f'Welcome to Zenalyze, {user.display_title}! Your account was created with Google. 🎉')
+    else:
+        messages.success(request, f'Welcome back, {user.display_title}!')
+
+    next_url = request.session.pop('google_oauth_next', '/dashboard/')
+    return redirect(next_url)
+
