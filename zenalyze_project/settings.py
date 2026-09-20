@@ -19,9 +19,17 @@ sys.path.insert(0, str(BASE_DIR / 'apps'))
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-zenalyze-mental-wellness-platform-2026-key')
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['*']
+
+# CSRF trusted origins — required for Vercel / any HTTPS reverse-proxy
+CSRF_TRUSTED_ORIGINS = [
+    'https://zenalyze-six.vercel.app',
+    'https://*.vercel.app',
+    'http://localhost:8000',
+    'http://127.0.0.1:8000',
+]
 
 # Application definition
 INSTALLED_APPS = [
@@ -76,10 +84,10 @@ TEMPLATES = [
 WSGI_APPLICATION = 'zenalyze_project.wsgi.application'
 
 # Database
-# If DATABASE_URL or SUPABASE_DB_PASSWORD is provided in .env, connect to Supabase PostgreSQL.
-# Otherwise, fall back gracefully to local SQLite.
-DATABASE_URL = os.environ.get('Dhttps://cpmjwdmjgkqxehjkvhgb.supabase.co')
-SUPABASE_DB_PASSWORD = os.environ.get('Winnerbonnie@2004')
+# If DATABASE_URL is provided, connect to Supabase PostgreSQL.
+# Otherwise, fall back gracefully to local SQLite for development.
+DATABASE_URL = os.environ.get('DATABASE_URL')
+SUPABASE_DB_PASSWORD = os.environ.get('SUPABASE_DB_PASSWORD')
 
 if DATABASE_URL:
     import dj_database_url
@@ -97,7 +105,7 @@ elif SUPABASE_DB_PASSWORD:
             'NAME': os.environ.get('SUPABASE_DB_NAME', 'postgres'),
             'USER': os.environ.get('SUPABASE_DB_USER', f"postgres.{os.environ.get('SUPABASE_PROJECT_ID', 'cpmjwdmjgkqxehjkvhgb')}"),
             'PASSWORD': SUPABASE_DB_PASSWORD,
-            'HOST': os.environ.get('SUPABASE_DB_HOST', 'aws-0-eu-central-1.pooler.supabase.com'),
+            'HOST': os.environ.get('SUPABASE_DB_HOST', 'aws-1-eu-west-1.pooler.supabase.com'),
             'PORT': os.environ.get('SUPABASE_DB_PORT', '6543'),
         }
     }
@@ -149,8 +157,12 @@ LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Session settings (matches legacy PHP 30min session timeout)
-SESSION_COOKIE_AGE = 1800
+# Session settings
+# Use signed-cookie sessions so Vercel (read-only fs) doesn't need to write to the DB for sessions
+SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+SESSION_COOKIE_AGE = 1800      # 30-minute session timeout (matches legacy PHP)
 SESSION_SAVE_EVERY_REQUEST = True
+SESSION_COOKIE_HTTPONLY = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+

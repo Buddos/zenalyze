@@ -153,7 +153,7 @@
                 <span>or</span>
             </div>
             
-            <button id="btn-google-login" class="btn-google" type="button" onclick="signInWithGoogle()">
+            <a href="{% url 'accounts:google_login' %}" class="btn-google">
                 <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
                     <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
@@ -161,9 +161,8 @@
                     <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
                     <path fill="none" d="M0 0h48v48H0z"/>
                 </svg>
-                <span id="google-btn-text">Continue with Google</span>
-                <span id="google-spinner" style="display:none; width:16px; height:16px; border:2px solid #e2e8f0; border-top-color:#667eea; border-radius:50%; animation:spin 0.7s linear infinite;"></span>
-            </button>
+                Continue with Google
+            </a>
             
             <div class="footer-links">
                 Don't have an account? <a href="{% url 'accounts:register' %}">Create account</a>
@@ -171,7 +170,6 @@
         </div>
     </div>
 
-    <!-- Password toggle -->
     <script>
         function togglePassword(inputId, btn) {
             const input = document.getElementById(inputId);
@@ -185,78 +183,5 @@
             }
         }
     </script>
-
-    <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-
-        // TODO: Replace with your Firebase project config from the Firebase Console
-        // Project Settings → General → Your apps → Web app → firebaseConfig
-        const firebaseConfig = {
-            apiKey: "AIzaSyDwdpQKLtsANsZhPVoqXZ2rjF4tghp-NpQ",
-            authDomain: "zenalyze-b2f49.firebaseapp.com",
-            projectId: "zenalyze-b2f49",
-            storageBucket: "zenalyze-b2f49.firebasestorage.app",
-            messagingSenderId: "697872155323",
-            appId: "1:697872155323:web:64ee5d53884b337b039f9e"
-        };
-
-        const app  = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const provider = new GoogleAuthProvider();
-        provider.addScope('email');
-        provider.addScope('profile');
-
-        window.signInWithGoogle = async function() {
-            const btn     = document.getElementById('btn-google-login');
-            const label   = document.getElementById('google-btn-text');
-            const spinner = document.getElementById('google-spinner');
-
-            btn.disabled = true;
-            label.textContent = 'Connecting...';
-            spinner.style.display = 'inline-block';
-
-            try {
-                const result  = await signInWithPopup(auth, provider);
-                const idToken = await result.user.getIdToken();
-
-                label.textContent = 'Verifying...';
-
-                const response = await fetch('/auth/google/', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ id_token: idToken }),
-                });
-
-                const data = await response.json();
-
-                if (data.status === 'ok') {
-                    label.textContent = data.created ? 'Account created! Redirecting...' : 'Signed in! Redirecting...';
-                    window.location.href = data.redirect || '/dashboard/';
-                } else {
-                    throw new Error(data.message || 'Authentication failed');
-                }
-
-            } catch (err) {
-                btn.disabled = false;
-                label.textContent = 'Continue with Google';
-                spinner.style.display = 'none';
-
-                if (err.code !== 'auth/popup-closed-by-user' && err.code !== 'auth/cancelled-popup-request') {
-                    const alertEl = document.createElement('div');
-                    alertEl.className = 'alert alert-danger py-2 small mt-2';
-                    alertEl.innerHTML = `<i class="bi bi-exclamation-circle me-1"></i>${err.message}`;
-                    document.getElementById('btn-google-login').after(alertEl);
-                    setTimeout(() => alertEl.remove(), 5000);
-                }
-            }
-        };
-    </script>
-
-    <style>
-        @keyframes spin { to { transform: rotate(360deg); } }
-    </style>
 </body>
 </html>
-
