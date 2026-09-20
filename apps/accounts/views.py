@@ -3,7 +3,10 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 import json
+import urllib.request
+import urllib.error
 
 from .models import User, UserSettings, UserActivityLog
 
@@ -171,3 +174,84 @@ def update_theme_api(request):
         return response
         
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+
+
+@csrf_exempt
+def google_auth_view(request):
+    """Receives a Firebase/Google ID token from the frontend,
+    verifies it with Google tokeninfo, then logs the user in
+    (creating a Zenalyze account automatically if needed)."""
+    if request.method != 'POST':
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        id_token = body.get('id_token', '').strip()
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid request body'}, status=400)
+
+    if not id_token:
+        return JsonResponse({'status': 'error', 'message': 'No ID token provided'}, status=400)
+
+    # Verify the token with Google tokeninfo endpoint
+    try:
+        url = f'https://oauth2.googleapis.com/tokeninfo?id_token={id_token}'
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            token_data = json.loads(resp.read().decode())
+    except urllib.error.HTTPError as e:
+        return JsonResponse({'status': 'error', 'message': 'Invalid Google token'}, status=401)
+    except Exception:
+        return JsonResponse({'status': 'error', 'message': 'Could not verify token'}, status=500)
+
+    google_email = token_data.get('email', '').lower()
+    google_name  = token_data.get('name', '')
+    google_picture = token_data.get('picture', '')
+    email_verified = token_data.get('email_verified', 'false') == 'true'
+
+    if not google_email or not email_verified:
+        return JsonResponse({'status': 'error', 'message': 'Email not verified by Google'}, status=401)
+
+    # Get or create the Django user
+    created = False
+    try:
+        user = User.objects.get(email=google_email)
+    except User.DoesNotExist:
+        # Auto-generate a username from the email prefix
+        base_username = google_email.split('@')[0].replace('.', '_')[:30]
+        username = base_username
+        counter = 1
+        while User.objects.filter(username=username).exists():
+            username = f"{base_username}{counter}"
+            counter += 1
+
+        user = User.objects.create_user(
+            username=username,
+            email=google_email,
+            password=None,          # No password — Google-only account
+            full_name=google_name,
+            role='user',
+        )
+        if google_picture:
+            user.avatar_url = google_picture
+        user.save()
+
+        UserSettings.objects.create(user=user, theme='light')
+        created = True
+
+    if not user.is_active:
+        return JsonResponse({'status': 'error', 'message': 'This account is suspended.'}, status=403)
+
+    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
+
+    UserActivityLog.objects.create(
+        user=user,
+        action='google_login' if not created else 'google_register',
+        details=f'Signed in via Google ({google_email})',
+        ip_address=request.META.get('REMOTE_ADDR'),
+    )
+
+    return JsonResponse({
+        'status': 'ok',
+        'created': created,
+        'redirect': '/dashboard/',
+    })
