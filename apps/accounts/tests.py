@@ -143,3 +143,17 @@ class ProfileAvatarUploadTests(TestCase):
         self.user.refresh_from_db()
         self.assertFalse(self.user.avatar_url)
         self.assertFalse(self.user.avatar)
+
+    @override_settings(IS_VERCEL=True)
+    def test_vercel_ignores_legacy_local_avatar_file(self):
+        self.user.avatar = 'avatars/chat.jpeg'
+        self.user.avatar_url = ''
+
+        self.assertIsNone(self.user.avatar_display_url)
+
+    @override_settings(IS_VERCEL=True)
+    def test_vercel_prefers_persistent_supabase_avatar_url(self):
+        self.user.avatar = 'avatars/chat.jpeg'
+        self.user.avatar_url = 'https://supabase.example.test/storage/v1/object/public/avatars/user/photo.jpg'
+
+        self.assertEqual(self.user.avatar_display_url, self.user.avatar_url)

@@ -1,4 +1,5 @@
 from django.contrib.auth.models import AbstractUser
+from django.conf import settings
 from django.db import models
 
 class User(AbstractUser):
@@ -30,12 +31,17 @@ class User(AbstractUser):
 
     @property
     def avatar_display_url(self):
+        if self.avatar_url:
+            if self.avatar_url.startswith(('https://', 'http://')):
+                return self.avatar_url
+            if not getattr(settings, 'IS_VERCEL', False):
+                if self.avatar_url.startswith('/'):
+                    return self.avatar_url
+                return f'/{self.avatar_url}'
+        if getattr(settings, 'IS_VERCEL', False):
+            return None
         if self.avatar and hasattr(self.avatar, 'url'):
             return self.avatar.url
-        if self.avatar_url:
-            if self.avatar_url.startswith('http') or self.avatar_url.startswith('/'):
-                return self.avatar_url
-            return f"/{self.avatar_url}"
         return None
 
     @property

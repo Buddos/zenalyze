@@ -9,6 +9,7 @@ from django.views.decorators.cache import never_cache
 from django.middleware.csrf import rotate_token
 from django.views.csrf import csrf_failure as default_csrf_failure
 import json
+import logging
 import re
 import urllib.parse
 import secrets
@@ -20,6 +21,8 @@ from django.conf import settings
 from PIL import Image, UnidentifiedImageError
 
 from .models import User, UserSettings, UserActivityLog
+
+logger = logging.getLogger(__name__)
 
 # Firebase & Google OAuth2 settings
 FIREBASE_API_KEY     = getattr(settings, 'FIREBASE_API_KEY', os.environ.get('FIREBASE_API_KEY', 'AIzaSyDwdpQKLtsANsZhPVoqXZ2rjF4tghp-NpQ'))
@@ -77,7 +80,16 @@ def _upload_avatar_to_supabase(upload, user_id):
             timeout=15,
         )
         response.raise_for_status()
-    except http_requests.RequestException:
+    except http_requests.RequestException as error:
+        response_details = ''
+        if error.response is not None:
+            response_details = error.response.text[:500]
+        logger.warning(
+            'Supabase avatar upload failed for user %s (status=%s): %s',
+            user_id,
+            error.response.status_code if error.response is not None else 'connection-error',
+            response_details or str(error),
+        )
         raise ValidationError('Could not upload your profile photo. Please try again.')
 
     return f'{supabase_url}/storage/v1/object/public/{bucket}/{object_path}'
