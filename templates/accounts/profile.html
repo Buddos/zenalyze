@@ -13,11 +13,8 @@
                 <div class="position-relative d-inline-block mx-auto mb-3">
                     <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold fs-1 text-white shadow" 
                          style="width: 100px; height: 100px; background: linear-gradient(135deg, #667eea, #764ba2); overflow: hidden;">
-                        {% if user.avatar_display_url %}
-                        <img src="{{ user.avatar_display_url }}" alt="Avatar" style="width:100%; height:100%; object-fit:cover;">
-                        {% else %}
-                        {{ user.display_title|slice:":1"|upper }}
-                        {% endif %}
+                        <img id="profileAvatarPreview" src="{{ user.avatar_display_url|default:'' }}" alt="Profile photo preview" style="width:100%; height:100%; object-fit:cover; {% if not user.avatar_display_url %}display:none;{% endif %}">
+                        <span id="profileAvatarInitial" {% if user.avatar_display_url %}style="display:none;"{% endif %}>{{ user.display_title|slice:":1"|upper }}</span>
                     </div>
                 </div>
                 <h4 class="fw-bold mb-1" style="color: var(--text-primary);">{{ user.display_title }}</h4>
@@ -75,8 +72,9 @@
 
                     <div class="mb-4">
                         <label class="form-label fw-bold small">Profile Avatar Image</label>
-                        <input type="file" class="form-control rounded-3" name="avatar" accept="image/*">
-                        <div class="form-text small">Recommended: Square PNG, JPG, or WEBP under 2MB.</div>
+                        <input type="file" class="form-control rounded-3" id="profileAvatarInput" name="avatar" accept="image/png,image/jpeg,image/webp">
+                        <div class="form-text small">Photo preview updates immediately. PNG, JPG, or WEBP up to 2 MB.</div>
+                        <div class="form-text small text-danger d-none" id="profileAvatarError" role="alert">Choose a PNG, JPG, or WEBP image under 2 MB.</div>
                     </div>
 
                     <h6 class="fw-bold border-top pt-4 mb-3" style="color: var(--text-primary);"><i class="bi bi-shield-exclamation text-danger me-2"></i> Safety & Emergency Contact</h6>
@@ -99,4 +97,43 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const avatarInput = document.getElementById('profileAvatarInput');
+    const avatarPreview = document.getElementById('profileAvatarPreview');
+    const avatarInitial = document.getElementById('profileAvatarInitial');
+    const avatarError = document.getElementById('profileAvatarError');
+    let avatarPreviewUrl = null;
+
+    avatarInput?.addEventListener('change', () => {
+        avatarError.classList.add('d-none');
+        const file = avatarInput.files?.[0];
+        if (!file) return;
+
+        const validTypes = ['image/png', 'image/jpeg', 'image/webp'];
+        if (!validTypes.includes(file.type) || file.size > 2 * 1024 * 1024) {
+            avatarInput.value = '';
+            avatarError.classList.remove('d-none');
+            return;
+        }
+
+        if (avatarPreviewUrl) URL.revokeObjectURL(avatarPreviewUrl);
+        avatarPreviewUrl = URL.createObjectURL(file);
+        avatarPreview.onload = () => {
+            avatarPreview.style.display = 'block';
+            avatarInitial.style.display = 'none';
+        };
+        avatarPreview.onerror = () => {
+            avatarInput.value = '';
+            avatarPreview.style.display = 'none';
+            avatarInitial.style.display = 'inline';
+            avatarError.classList.remove('d-none');
+            URL.revokeObjectURL(avatarPreviewUrl);
+            avatarPreviewUrl = null;
+        };
+        avatarPreview.src = avatarPreviewUrl;
+    });
+</script>
 {% endblock %}

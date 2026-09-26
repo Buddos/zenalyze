@@ -102,6 +102,14 @@ class ProfileAvatarUploadTests(TestCase):
             'avatar': avatar,
         }
 
+    def test_profile_page_renders_instant_avatar_preview_controls(self):
+        response = self.client.get(reverse('accounts:profile'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'id="profileAvatarInput"')
+        self.assertContains(response, 'id="profileAvatarPreview"')
+        self.assertContains(response, 'URL.createObjectURL(file)')
+
     @override_settings(IS_VERCEL=True, SUPABASE_URL='https://supabase.example.test')
     @patch.dict('os.environ', {'SUPABASE_SERVICE_ROLE_KEY': 'server-only-test-secret', 'SUPABASE_STORAGE_BUCKET': 'avatars'})
     @patch('apps.accounts.views.http_requests.post')
