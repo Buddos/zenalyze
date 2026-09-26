@@ -242,6 +242,8 @@ SUPABASE_PROJECT_ID=your-project-id
 
 Add `DATABASE_URL` to the Vercel project's Environment Variables for every deployment environment, using the Supabase PostgreSQL Transaction Pooler URI. Vercel deployments intentionally fail during startup if PostgreSQL is not configured; they must not fall back to ephemeral SQLite storage. Django user accounts, login activity, and database-backed authentication sessions are stored in that PostgreSQL database.
 
+Create a public Supabase Storage bucket named `avatars` (or set `SUPABASE_STORAGE_BUCKET` to another bucket name). Add `SUPABASE_SERVICE_ROLE_KEY` to the Vercel project's server-side Environment Variables so profile photos can be uploaded persistently. Never expose this key in frontend code or commit it to the repository. Avatar uploads are validated as PNG/JPG/WEBP images and limited to 2 MB.
+
 After configuring the database, apply Django migrations to the Supabase database:
 
 ```bash

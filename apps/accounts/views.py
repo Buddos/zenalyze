@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
@@ -12,8 +13,11 @@ import re
 import urllib.parse
 import secrets
 import os
+import uuid
+from io import BytesIO
 import requests as http_requests
 from django.conf import settings
+from PIL import Image, UnidentifiedImageError
 
 from .models import User, UserSettings, UserActivityLog
 
@@ -22,6 +26,61 @@ FIREBASE_API_KEY     = getattr(settings, 'FIREBASE_API_KEY', os.environ.get('FIR
 GOOGLE_CLIENT_ID     = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI  = os.environ.get('GOOGLE_REDIRECT_URI', 'http://localhost:8000/auth/google/callback/')
+
+
+def _upload_avatar_to_supabase(upload, user_id):
+    max_size = 2 * 1024 * 1024
+    if upload.size > max_size:
+        raise ValidationError('Profile photos must be 2 MB or smaller.')
+
+    content = upload.read()
+    try:
+        image = Image.open(BytesIO(content))
+        image.verify()
+        image_format = image.format
+    except (UnidentifiedImageError, OSError, ValueError):
+        raise ValidationError('Choose a valid PNG, JPG, or WEBP image.')
+
+    image_types = {
+        'JPEG': ('jpg', 'image/jpeg'),
+        'PNG': ('png', 'image/png'),
+        'WEBP': ('webp', 'image/webp'),
+    }
+    image_type = image_types.get(image_format)
+    if not image_type:
+        raise ValidationError('Choose a PNG, JPG, or WEBP image.')
+    extension, content_type = image_type
+
+    supabase_url = getattr(settings, 'SUPABASE_URL', '').rstrip('/')
+    storage_key = (
+        os.environ.get('SUPABASE_SERVICE_ROLE_KEY')
+        or os.environ.get('SUPABASE_SECRET_KEY')
+        or os.environ.get('SUPABASE_SERVICE_KEY')
+    )
+    bucket = os.environ.get('SUPABASE_STORAGE_BUCKET', 'avatars').strip()
+    if not supabase_url or not storage_key or not bucket:
+        raise ValidationError('Profile photo storage is not configured. Please contact support.')
+
+    object_path = f'{user_id}/{uuid.uuid4().hex}.{extension}'
+    upload_url = f'{supabase_url}/storage/v1/object/{bucket}/{object_path}'
+    try:
+        response = http_requests.post(
+            upload_url,
+            data=content,
+            headers={
+                'Authorization': f'Bearer {storage_key}',
+                'apikey': storage_key,
+                'Content-Type': content_type,
+                'x-upsert': 'false',
+                'Cache-Control': 'max-age=31536000',
+            },
+            timeout=15,
+        )
+        response.raise_for_status()
+    except http_requests.RequestException:
+        raise ValidationError('Could not upload your profile photo. Please try again.')
+
+    return f'{supabase_url}/storage/v1/object/public/{bucket}/{object_path}'
 
 @never_cache
 @ensure_csrf_cookie
@@ -160,11 +219,24 @@ def profile_view(request):
         user.emergency_contact_name = request.POST.get('emergency_contact_name', '').strip()
         user.emergency_contact_phone = request.POST.get('emergency_contact_phone', '').strip()
         
-        if 'avatar' in request.FILES:
-            user.avatar = request.FILES['avatar']
-            
+        avatar_error = None
+        avatar_upload = request.FILES.get('avatar')
+        if avatar_upload:
+            if getattr(settings, 'IS_VERCEL', False):
+                try:
+                    user.avatar_url = _upload_avatar_to_supabase(avatar_upload, user.id)
+                    user.avatar = ''
+                except ValidationError as error:
+                    avatar_error = error.messages[0]
+            else:
+                user.avatar = avatar_upload
+
         user.save()
-        messages.success(request, "Profile updated successfully.")
+        if avatar_error:
+            messages.error(request, avatar_error)
+            messages.info(request, 'Your other profile details were saved.')
+        else:
+            messages.success(request, "Profile updated successfully.")
         return redirect('accounts:profile')
         
     return render(request, 'accounts/profile.html', {'user': user})

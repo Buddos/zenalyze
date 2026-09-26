@@ -1,9 +1,13 @@
 import re
+from io import BytesIO
+from unittest.mock import Mock, patch
 
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
-from django.test import Client, TestCase
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from PIL import Image
 
 
 User = get_user_model()
@@ -72,3 +76,70 @@ class LoginCSRFTests(TestCase):
         self.assertContains(response, 'Your security token expired. Please try again.')
         self.assertNotEqual(self.client.cookies['csrftoken'].value, old_cookie)
         self.assertFalse(User.objects.filter(username='csrf-register-test').exists())
+
+
+class ProfileAvatarUploadTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='avatar-user',
+            email='avatar@example.test',
+            password='safe-test-pass-123',
+        )
+        self.client.force_login(self.user)
+
+    def make_png_upload(self):
+        image_bytes = BytesIO()
+        Image.new('RGB', (4, 4), color='teal').save(image_bytes, format='PNG')
+        return SimpleUploadedFile('profile.png', image_bytes.getvalue(), content_type='image/png')
+
+    def profile_payload(self, avatar):
+        return {
+            'full_name': 'Avatar Test User',
+            'display_name': 'Avatar Test',
+            'email': self.user.email,
+            'emergency_contact_name': '',
+            'emergency_contact_phone': '',
+            'avatar': avatar,
+        }
+
+    @override_settings(IS_VERCEL=True, SUPABASE_URL='https://supabase.example.test')
+    @patch.dict('os.environ', {'SUPABASE_SERVICE_ROLE_KEY': 'server-only-test-secret', 'SUPABASE_STORAGE_BUCKET': 'avatars'})
+    @patch('apps.accounts.views.http_requests.post')
+    def test_avatar_upload_saves_supabase_public_url(self, upload_request):
+        upload_request.return_value = Mock()
+
+        response = self.client.post(reverse('accounts:profile'), self.profile_payload(self.make_png_upload()))
+
+        self.user.refresh_from_db()
+        self.assertRedirects(response, reverse('accounts:profile'))
+        self.assertEqual(
+            self.user.avatar_url.split('/storage/v1/object/public/avatars/')[0],
+            'https://supabase.example.test',
+        )
+        self.assertTrue(self.user.avatar_url.endswith('.png'))
+        self.assertFalse(self.user.avatar)
+        self.assertEqual(upload_request.call_args.args[0].split('/storage/v1/object/avatars/')[0], 'https://supabase.example.test')
+        self.assertEqual(upload_request.call_args.kwargs['headers']['Authorization'], 'Bearer server-only-test-secret')
+
+    @override_settings(IS_VERCEL=True, SUPABASE_URL='https://supabase.example.test')
+    @patch.dict('os.environ', {'SUPABASE_SERVICE_ROLE_KEY': 'server-only-test-secret'})
+    @patch('apps.accounts.views.http_requests.post')
+    def test_invalid_image_is_not_uploaded(self, upload_request):
+        invalid_upload = SimpleUploadedFile('not-image.png', b'not an image', content_type='image/png')
+
+        self.client.post(reverse('accounts:profile'), self.profile_payload(invalid_upload))
+
+        upload_request.assert_not_called()
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.avatar_url)
+
+    @override_settings(IS_VERCEL=True, SUPABASE_URL='https://supabase.example.test')
+    @patch.dict('os.environ', {}, clear=True)
+    @patch('apps.accounts.views.http_requests.post')
+    def test_missing_storage_credentials_do_not_write_local_avatar(self, upload_request):
+        self.client.post(reverse('accounts:profile'), self.profile_payload(self.make_png_upload()))
+
+        upload_request.assert_not_called()
+        self.user.refresh_from_db()
+        self.assertFalse(self.user.avatar_url)
+        self.assertFalse(self.user.avatar)
