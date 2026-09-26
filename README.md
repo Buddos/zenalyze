@@ -216,43 +216,7 @@ python check_supabase_connection.py
 
 ---
 
-## ⚙️ Environment Variables
 
-Create a `.env` file in the project root (use `.env.example` as a template):
-
-```env
-# Django
-DJANGO_SECRET_KEY=your-long-secret-key-here
-DEBUG=True
-
-# Supabase Project Info
-SUPABASE_URL=https://your-project-id.supabase.co
-SUPABASE_ANON_KEY=your-publishable-key
-SUPABASE_PROJECT_ID=your-project-id
-
-# Database — uncomment and fill in your password to connect to Supabase
-# DATABASE_URL=postgresql://postgres.[project-id]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
-
-# If DATABASE_URL is not set, SQLite is used automatically for local development
-```
-
-> **Note:** If `DATABASE_URL` is not configured, the app automatically falls back to a local SQLite database (`db.sqlite3`). No Supabase config needed for local development.
-
-### Vercel deployment
-
-Add `DATABASE_URL` to the Vercel project's Environment Variables for every deployment environment, using the Supabase PostgreSQL Transaction Pooler URI. Vercel deployments intentionally fail during startup if PostgreSQL is not configured; they must not fall back to ephemeral SQLite storage. Django user accounts, login activity, and database-backed authentication sessions are stored in that PostgreSQL database.
-
-Create a public Supabase Storage bucket named `avatars` (or set `SUPABASE_STORAGE_BUCKET` to another bucket name). Add `SUPABASE_SERVICE_ROLE_KEY` to the Vercel project's server-side Environment Variables so profile photos can be uploaded persistently. Never expose this key in frontend code or commit it to the repository. Avatar uploads are validated as PNG/JPG/WEBP images and limited to 2 MB.
-
-After configuring the database, apply Django migrations to the Supabase database:
-
-```bash
-python manage.py migrate
-```
-
-Do not put the database password in source control or paste it into chat or command text. If a database credential is exposed, rotate it in Supabase and update the Vercel `DATABASE_URL` immediately.
-
----
 
 ## ▶️ Running the Application
 
