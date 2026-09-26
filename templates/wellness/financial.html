@@ -95,10 +95,44 @@
     #newFinancialModal .modal-content { border-radius: 8px !important; }
     #newFinancialModal .form-control, #newFinancialModal .form-select { min-height: 42px; border-radius: 6px; }
     @media (max-width: 760px) {
-        .money-summary-grid { grid-template-columns: 1fr; gap: 0.55rem; }
+        .planner-heading { align-items: flex-start; }
+        .money-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
         .money-summary { min-height: 0; padding: 0.85rem 1rem; }
         .money-summary-value { margin-top: 0.4rem; }
+        .money-summary:last-child { grid-column: 1 / -1; }
         .planner-insights { grid-template-columns: 1fr; }
+        .planner-panel { padding: 0.9rem; }
+        .planner-actions { width: 100%; }
+        .planner-actions form { flex: 1; min-width: 0; }
+        .planner-actions form .form-select { width: 100%; }
+        .planner-actions > .btn { flex: 1; white-space: nowrap; }
+        .transactions-heading { align-items: flex-start; flex-direction: column; gap: 0.2rem; }
+        .transaction-table { width: 100%; table-layout: fixed; }
+        .transaction-table th, .transaction-table td { padding: 0.65rem 0.35rem; }
+        .transaction-table th:nth-child(2), .transaction-table td:nth-child(2) { display: none; }
+        .transaction-table th:first-child, .transaction-table td:first-child { width: 31%; }
+        .transaction-table th:nth-child(3), .transaction-table td:nth-child(3) { width: 38%; }
+        .transaction-table th:nth-child(4), .transaction-table td:nth-child(4) { width: 22%; }
+        .transaction-table th:last-child, .transaction-table td:last-child { width: 9%; }
+        .transaction-category { gap: 0.3rem; font-size: 0.8rem; }
+        .transaction-amount { font-size: 0.78rem; }
+        .transaction-date { font-size: 0.69rem; white-space: normal; }
+        .transaction-delete { padding: 0.3rem; }
+        .spending-chart-wrap { height: 215px; }
+    }
+    @media (max-width: 380px) {
+        .financial-page { padding-left: 0.25rem; padding-right: 0.25rem; }
+        .planner-heading h2 { font-size: 1.3rem; }
+        .planner-actions { gap: 0.4rem; }
+        .planner-actions .form-select, .planner-actions .btn { font-size: 0.76rem; padding-left: 0.55rem; padding-right: 0.55rem; }
+        .money-summary { padding: 0.7rem; }
+        .money-summary-value { font-size: 1.15rem; }
+        .money-summary-label { font-size: 0.7rem; }
+        .money-summary-note { font-size: 0.66rem; }
+        .transaction-table th:nth-child(4), .transaction-table td:nth-child(4) { display: none; }
+        .transaction-table th:first-child, .transaction-table td:first-child { width: 39%; }
+        .transaction-table th:nth-child(3), .transaction-table td:nth-child(3) { width: 48%; }
+        .transaction-table th:last-child, .transaction-table td:last-child { width: 13%; }
     }
 </style>
 {% endblock %}
