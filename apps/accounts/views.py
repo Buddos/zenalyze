@@ -5,6 +5,8 @@ from django.contrib import messages
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
+from django.middleware.csrf import rotate_token
+from django.views.csrf import csrf_failure as default_csrf_failure
 import json
 import re
 import urllib.parse
@@ -65,6 +67,25 @@ def login_view(request):
             
     return render(request, 'accounts/login.html')
 
+
+@never_cache
+@ensure_csrf_cookie
+def csrf_failure_view(request, reason=''):
+    if request.path_info == '/auth/login/':
+        rotate_token(request)
+        return render(request, 'accounts/login.html', {
+            'error': 'Your security token expired. Please try again.',
+        })
+    if request.path_info == '/auth/register/':
+        rotate_token(request)
+        return render(request, 'accounts/register.html', {
+            'errors': ['Your security token expired. Please try again.'],
+        })
+    return default_csrf_failure(request, reason=reason)
+
+
+@never_cache
+@ensure_csrf_cookie
 def register_view(request):
     if request.user.is_authenticated:
         return redirect('wellness:dashboard')

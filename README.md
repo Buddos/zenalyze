@@ -238,6 +238,18 @@ SUPABASE_PROJECT_ID=your-project-id
 
 > **Note:** If `DATABASE_URL` is not configured, the app automatically falls back to a local SQLite database (`db.sqlite3`). No Supabase config needed for local development.
 
+### Vercel deployment
+
+Add `DATABASE_URL` to the Vercel project's Environment Variables for every deployment environment, using the Supabase PostgreSQL Transaction Pooler URI. Vercel deployments intentionally fail during startup if PostgreSQL is not configured; they must not fall back to ephemeral SQLite storage. Django user accounts, login activity, and database-backed authentication sessions are stored in that PostgreSQL database.
+
+After configuring the database, apply Django migrations to the Supabase database:
+
+```bash
+python manage.py migrate
+```
+
+Do not put the database password in source control or paste it into chat or command text. If a database credential is exposed, rotate it in Supabase and update the Vercel `DATABASE_URL` immediately.
+
 ---
 
 ## ▶️ Running the Application

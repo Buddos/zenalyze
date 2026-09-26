@@ -6,6 +6,7 @@ Converted from PHP to Python Django.
 from pathlib import Path
 import os
 import sys
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -19,7 +20,8 @@ sys.path.insert(0, str(BASE_DIR / 'apps'))
 
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY', 'django-insecure-zenalyze-mental-wellness-platform-2026-key')
 
-DEBUG = os.environ.get('DEBUG', 'True').lower() in ('true', '1', 'yes')
+debug_setting = os.environ.get('VERCEL_DEBUG', 'False') if os.environ.get('VERCEL') else os.environ.get('DEBUG', 'True')
+DEBUG = debug_setting.lower() in ('true', '1', 'yes')
 
 ALLOWED_HOSTS = ['*']
 
@@ -33,6 +35,9 @@ CSRF_TRUSTED_ORIGINS = [
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SAMESITE = 'Lax'
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_FAILURE_VIEW = 'apps.accounts.views.csrf_failure_view'
 
 # Application definition
 INSTALLED_APPS = [
@@ -91,6 +96,7 @@ WSGI_APPLICATION = 'zenalyze_project.wsgi.application'
 # Otherwise, fall back gracefully to local SQLite for development.
 DATABASE_URL = os.environ.get('DATABASE_URL')
 SUPABASE_DB_PASSWORD = os.environ.get('SUPABASE_DB_PASSWORD')
+IS_VERCEL = bool(os.environ.get('VERCEL'))
 
 if DATABASE_URL:
     import dj_database_url
@@ -119,6 +125,12 @@ else:
             'NAME': BASE_DIR / 'db.sqlite3',
         }
     }
+
+if IS_VERCEL and DATABASES['default']['ENGINE'] != 'django.db.backends.postgresql':
+    raise ImproperlyConfigured(
+        'Vercel requires Supabase PostgreSQL. Configure DATABASE_URL or '
+        'SUPABASE_DB_PASSWORD in the Vercel project environment variables.'
+    )
 
 # Supabase API Configuration
 SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://cpmjwdmjgkqxehjkvhgb.supabase.co')
@@ -165,9 +177,8 @@ LOGIN_URL = '/auth/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/'
 
-# Session settings
-# Use signed-cookie sessions so Vercel (read-only fs) doesn't need to write to the DB for sessions
-SESSION_ENGINE = 'django.contrib.sessions.backends.signed_cookies'
+# Store authenticated sessions in the configured database, which is Supabase PostgreSQL on Vercel.
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 SESSION_COOKIE_AGE = 1800      # 30-minute session timeout (matches legacy PHP)
 SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
