@@ -446,13 +446,22 @@ def financial_view(request):
 
 @login_required
 def delete_financial_entry(request, entry_id):
-    if request.method == 'POST':
-        entry = get_object_or_404(FinancialEntry, id=entry_id, user=request.user)
+    if request.method != 'POST':
+        return redirect('wellness:financial')
+
+    currency = request.POST.get('currency', '').upper()
+    if currency not in {'KES', 'USD', 'EUR'}:
+        currency = ''
+
+    entry = FinancialEntry.objects.filter(id=entry_id, user=request.user).first()
+    if entry is None:
+        messages.error(request, 'That transaction was not found in your account. It may have already been deleted.')
+    else:
         entry.delete()
-        messages.success(request, "Financial transaction deleted.")
-        currency = request.POST.get('currency', '').upper()
-        if currency in {'KES', 'USD', 'EUR'}:
-            return redirect(f"{reverse('wellness:financial')}?currency={currency}")
+        messages.success(request, 'Financial transaction deleted.')
+
+    if currency:
+        return redirect(f"{reverse('wellness:financial')}?currency={currency}")
     return redirect('wellness:financial')
 
 @login_required

@@ -95,3 +95,40 @@ class FinancialPlannerTests(TestCase):
         self.assertEqual(response.context['total_income'], Decimal('0'))
         self.assertEqual(response.context['total_expense'], Decimal('10.00'))
         self.assertEqual(response.context['net_balance'], Decimal('-10.00'))
+
+    def test_delete_button_removes_owned_transaction_and_keeps_currency(self):
+        entry = FinancialEntry.objects.create(
+            user=self.user,
+            amount=Decimal('12.00'),
+            category='Food',
+            currency='USD',
+        )
+        page = self.client.get(reverse('wellness:financial'), {'currency': 'USD'})
+        self.assertContains(page, reverse('wellness:financial_delete', args=[entry.id]))
+
+        response = self.client.post(reverse('wellness:financial_delete', args=[entry.id]), {'currency': 'USD'})
+
+        self.assertRedirects(response, f"{reverse('wellness:financial')}?currency=USD")
+        self.assertFalse(FinancialEntry.objects.filter(id=entry.id).exists())
+
+    def test_stale_or_other_users_transaction_id_does_not_show_404(self):
+        other_user = User.objects.create_user(
+            username='another-planner-user',
+            email='another-planner@example.test',
+            password='safe-test-pass-123',
+        )
+        other_entry = FinancialEntry.objects.create(
+            user=other_user,
+            amount=Decimal('12.00'),
+            category='Food',
+            currency='KES',
+        )
+
+        response = self.client.post(reverse('wellness:financial_delete', args=[other_entry.id]), {'currency': 'KES'})
+
+        self.assertRedirects(response, f"{reverse('wellness:financial')}?currency=KES")
+        self.assertTrue(any(
+            'That transaction was not found in your account.' in str(message)
+            for message in response.wsgi_request._messages
+        ))
+        self.assertTrue(FinancialEntry.objects.filter(id=other_entry.id).exists())
