@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django import forms
+from django.utils import timezone
 from .models import (
     MoodEntry,
     JournalEntry,
@@ -9,6 +11,27 @@ from .models import (
     RelationshipEntry,
     WellnessGoal,
 )
+from .models import Exercise
+
+
+class ExerciseAdminForm(forms.ModelForm):
+    class Meta:
+        model = Exercise
+        fields = '__all__'
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if cleaned_data.get('status') != 'published':
+            return cleaned_data
+
+        media_asset = cleaned_data.get('media_asset')
+        has_legacy_media = cleaned_data.get('video_file') or cleaned_data.get('video_url')
+        has_guided_content = cleaned_data.get('is_guided') or cleaned_data.get('instructions')
+        if media_asset and media_asset.processing_status != 'ready':
+            self.add_error('media_asset', 'Practice media must finish processing before it can be published.')
+        elif not (media_asset or has_legacy_media or has_guided_content):
+            raise forms.ValidationError('Add practice media or guided instructions before publishing.')
+        return cleaned_data
 
 
 @admin.register(MoodEntry)
@@ -29,15 +52,33 @@ class JournalEntryAdmin(admin.ModelAdmin):
 
 @admin.register(Exercise)
 class ExerciseAdmin(admin.ModelAdmin):
-    list_display = ('title', 'category', 'difficulty_level', 'duration_minutes', 'is_featured', 'is_active')
-    list_filter = ('category', 'difficulty_level', 'is_featured', 'is_active')
+    form = ExerciseAdminForm
+    list_display = ('title', 'category', 'difficulty_level', 'duration_minutes', 'status', 'media_asset', 'is_featured', 'is_active')
+    list_filter = ('status', 'category', 'difficulty_level', 'is_featured', 'is_active')
     search_fields = ('title', 'description', 'benefits')
+    autocomplete_fields = ('media_asset',)
+    readonly_fields = ('published_at',)
+
+    def get_changeform_initial_data(self, request):
+        initial = super().get_changeform_initial_data(request)
+        initial.setdefault('status', 'draft')
+        return initial
+
+    def save_model(self, request, obj, form, change):
+        if not obj.created_by_id:
+            obj.created_by = request.user
+        if obj.status == 'published':
+            if not obj.published_at:
+                obj.published_at = timezone.now()
+        else:
+            obj.published_at = None
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(UserExerciseSession)
 class UserExerciseSessionAdmin(admin.ModelAdmin):
-    list_display = ('user', 'exercise', 'duration_minutes', 'completed', 'created_at')
-    list_filter = ('completed', 'created_at')
+    list_display = ('user', 'exercise', 'progress_seconds', 'duration_minutes', 'completed', 'started_at', 'created_at')
+    list_filter = ('completed', 'started_at', 'created_at')
     search_fields = ('user__username', 'exercise__title')
 
 

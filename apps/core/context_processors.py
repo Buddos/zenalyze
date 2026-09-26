@@ -122,29 +122,180 @@ def get_theme_css(theme='light'):
         lines.append(f"    {k}: {v};")
     lines.append("}")
     
-    if selected_theme == 'auto':
-        lines.append("@media (prefers-color-scheme: dark) {")
-        lines.append("    :root {")
-        for k, v in themes['dark'].items():
-            if k not in shared:
-                lines.append(f"        {k}: {v};")
-        lines.append("    }")
-        lines.append("}")
-        
+    # Explicit rules for light theme
+    lines.append(":root[data-theme=\"light\"], html[data-theme=\"light\"] {")
+    for k, v in themes['light'].items():
+        lines.append(f"    {k}: {v};")
+    lines.append("}")
+
+    # Explicit rules for dark theme
+    lines.append(":root[data-theme=\"dark\"], html[data-theme=\"dark\"] {")
+    for k, v in themes['dark'].items():
+        lines.append(f"    {k}: {v};")
+    lines.append("}")
+
+    # Explicit rules for auto theme matching system prefers-color-scheme
+    lines.append("@media (prefers-color-scheme: dark) {")
+    lines.append("    :root[data-theme=\"auto\"], html[data-theme=\"auto\"] {")
+    for k, v in themes['dark'].items():
+        lines.append(f"        {k}: {v};")
+    lines.append("    }")
+    lines.append("}")
+
+    lines.append("@media (prefers-color-scheme: light) {")
+    lines.append("    :root[data-theme=\"auto\"], html[data-theme=\"auto\"] {")
+    for k, v in themes['light'].items():
+        lines.append(f"        {k}: {v};")
+    lines.append("    }")
+    lines.append("}")
+
+    # Component styling rules for dark mode
+    dark_component_styles = """
+html[data-theme="dark"] body,
+html[data-theme="dark"] .main-content {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+}
+html[data-theme="dark"] .card {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary);
+}
+html[data-theme="dark"] .dropdown-menu {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    box-shadow: var(--shadow-lg);
+}
+html[data-theme="dark"] .dropdown-item {
+    color: var(--text-primary) !important;
+}
+html[data-theme="dark"] .dropdown-item:hover,
+html[data-theme="dark"] .dropdown-item:focus {
+    background-color: var(--hover-bg) !important;
+    color: var(--link-color) !important;
+}
+html[data-theme="dark"] .dropdown-item.active {
+    background-color: rgba(102, 126, 234, 0.2) !important;
+    color: var(--link-color) !important;
+}
+html[data-theme="dark"] .dropdown-header {
+    color: var(--text-muted) !important;
+}
+html[data-theme="dark"] .form-control,
+html[data-theme="dark"] .form-select {
+    background-color: var(--input-bg) !important;
+    border-color: var(--input-border) !important;
+    color: var(--text-primary) !important;
+}
+html[data-theme="dark"] .form-control:focus,
+html[data-theme="dark"] .form-select:focus {
+    background-color: var(--input-bg) !important;
+    border-color: var(--input-focus) !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 0 0 0.25rem rgba(129, 140, 248, 0.25) !important;
+}
+html[data-theme="dark"] .table {
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+html[data-theme="dark"] .table > :not(caption) > * > * {
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-color) !important;
+}
+html[data-theme="dark"] .modal-content {
+    background-color: var(--card-bg) !important;
+    border-color: var(--border-color) !important;
+    color: var(--text-primary) !important;
+}
+html[data-theme="dark"] .text-dark {
+    color: var(--text-primary) !important;
+}
+html[data-theme="dark"] .bg-white {
+    background-color: var(--card-bg) !important;
+}
+html[data-theme="dark"] .bg-light {
+    background-color: var(--hover-bg) !important;
+    color: var(--text-primary) !important;
+}
+html[data-theme="dark"] .border {
+    border-color: var(--border-color) !important;
+}
+html[data-theme="dark"] .border-bottom {
+    border-color: var(--border-color) !important;
+}
+html[data-theme="dark"] .border-top {
+    border-color: var(--border-color) !important;
+}
+@media (prefers-color-scheme: dark) {
+    html[data-theme="auto"] body,
+    html[data-theme="auto"] .main-content {
+        background-color: var(--bg-primary);
+        color: var(--text-primary);
+    }
+    html[data-theme="auto"] .card {
+        background-color: var(--card-bg) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-primary);
+    }
+    html[data-theme="auto"] .dropdown-menu {
+        background-color: var(--card-bg) !important;
+        border-color: var(--border-color) !important;
+        box-shadow: var(--shadow-lg);
+    }
+    html[data-theme="auto"] .dropdown-item {
+        color: var(--text-primary) !important;
+    }
+    html[data-theme="auto"] .dropdown-item:hover,
+    html[data-theme="auto"] .dropdown-item:focus {
+        background-color: var(--hover-bg) !important;
+        color: var(--link-color) !important;
+    }
+    html[data-theme="auto"] .dropdown-item.active {
+        background-color: rgba(102, 126, 234, 0.2) !important;
+        color: var(--link-color) !important;
+    }
+    html[data-theme="auto"] .form-control,
+    html[data-theme="auto"] .form-select {
+        background-color: var(--input-bg) !important;
+        border-color: var(--input-border) !important;
+        color: var(--text-primary) !important;
+    }
+    html[data-theme="auto"] .table {
+        color: var(--text-primary) !important;
+        border-color: var(--border-color) !important;
+    }
+    html[data-theme="auto"] .table > :not(caption) > * > * {
+        background-color: transparent !important;
+        color: var(--text-primary) !important;
+        border-color: var(--border-color) !important;
+    }
+    html[data-theme="auto"] .text-dark {
+        color: var(--text-primary) !important;
+    }
+    html[data-theme="auto"] .bg-white {
+        background-color: var(--card-bg) !important;
+    }
+}
+"""
+    lines.append(dark_component_styles)
     return "\n".join(lines)
 
 
 def theme_context(request):
-    theme = 'light'
+    theme = None
     if request.user.is_authenticated:
         if hasattr(request.user, 'settings') and request.user.settings.theme:
             theme = request.user.settings.theme
         elif 'user_theme' in request.session:
             theme = request.session['user_theme']
-    elif 'user_theme' in request.session:
+    
+    if not theme and 'user_theme' in request.session:
         theme = request.session['user_theme']
-    elif 'user_theme' in request.COOKIES:
+    if not theme and 'user_theme' in request.COOKIES:
         theme = request.COOKIES['user_theme']
+    if not theme and 'theme' in request.COOKIES:
+        theme = request.COOKIES['theme']
         
     if theme not in ['light', 'dark', 'auto']:
         theme = 'light'

@@ -74,19 +74,36 @@
         <a href="?cat=" class="btn btn-sm {% if not selected_cat %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">All Practices</a>
         <a href="?cat=breathing" class="btn btn-sm {% if selected_cat == 'breathing' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Breathing</a>
         <a href="?cat=meditation" class="btn btn-sm {% if selected_cat == 'meditation' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Meditation</a>
-        <a href="?cat=yoga" class="btn btn-sm {% if selected_cat == 'yoga' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Yoga Flow</a>
-        <a href="?cat=mindfulness" class="btn btn-sm {% if selected_cat == 'mindfulness' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Grounding</a>
+        <a href="?cat=yoga_flow" class="btn btn-sm {% if selected_cat == 'yoga_flow' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Yoga Flow</a>
+        <a href="?cat=grounding" class="btn btn-sm {% if selected_cat == 'grounding' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">Grounding</a>
     </div>
+
+    {% if continue_session %}
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 border-bottom pb-3 mb-4">
+        <div>
+            <h5 class="fw-bold mb-1">Continue where you left off</h5>
+            <div class="small text-secondary">{{ continue_session.exercise.title }}</div>
+        </div>
+        <button class="btn btn-outline-primary btn-sm" onclick="continuePractice({{ continue_session.exercise_id }}, {{ continue_session.progress_seconds }})">
+            <i class="bi bi-play-fill me-1"></i> Continue
+        </button>
+    </div>
+    {% endif %}
 
     <!-- Exercises Grid -->
     <div class="row g-4 mb-5">
         {% for ex in exercises %}
-        <div class="col-md-6 col-lg-4">
+        <div class="col-md-6 col-lg-4" id="practice-{{ ex.id }}">
             <div class="exercise-card">
                 <div>
+                    {% if ex.practice_media.thumbnail or ex.thumbnail_file or ex.thumbnail_image %}
+                    <div class="mb-3">
+                        <img src="{% if ex.practice_media.thumbnail %}{{ ex.practice_media.thumbnail.url }}{% elif ex.thumbnail_file %}{{ ex.thumbnail_file.url }}{% else %}{{ ex.thumbnail_image }}{% endif %}" alt="{{ ex.title }} thumbnail" class="img-fluid rounded-3 w-100" style="max-height: 220px; object-fit: cover;">
+                    </div>
+                    {% endif %}
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="badge bg-primary bg-opacity-10 text-primary fw-bold text-uppercase px-3 py-2 rounded-pill small">
-                            {{ ex.category }}
+                            {{ ex.get_category_display }}
                         </span>
                         <span class="text-muted small fw-semibold">
                             <i class="bi bi-clock me-1 text-primary"></i> {{ ex.duration_minutes }} mins
@@ -94,6 +111,23 @@
                     </div>
                     <h5 class="fw-bold mb-2" style="color: var(--text-primary);">{{ ex.title }}</h5>
                     <p class="text-secondary small mb-3">{{ ex.description }}</p>
+
+                    {% if ex.practice_media.asset_type == 'video' %}
+                    <video id="practice-media-{{ ex.id }}" data-practice-player data-practice-id="{{ ex.id }}" data-session-id="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.id }}{% endif %}" data-progress-seconds="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.progress_seconds }}{% else %}0{% endif %}" class="w-100 rounded-3 mb-3" controls preload="none" {% if ex.practice_media.thumbnail %}poster="{{ ex.practice_media.thumbnail.url }}"{% endif %}>
+                        <source src="{{ ex.practice_media.file.url }}">
+                        Your browser does not support the video element.
+                    </video>
+                    {% elif ex.practice_media.asset_type == 'audio' %}
+                    <audio id="practice-media-{{ ex.id }}" data-practice-player data-practice-id="{{ ex.id }}" data-session-id="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.id }}{% endif %}" data-progress-seconds="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.progress_seconds }}{% else %}0{% endif %}" class="w-100 mb-3" controls preload="none">
+                        <source src="{{ ex.practice_media.file.url }}">
+                        Your browser does not support the audio element.
+                    </audio>
+                    {% elif ex.video_file %}
+                    <video id="practice-media-{{ ex.id }}" data-practice-player data-practice-id="{{ ex.id }}" data-session-id="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.id }}{% endif %}" data-progress-seconds="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.progress_seconds }}{% else %}0{% endif %}" class="w-100 rounded-3 mb-3" controls preload="metadata" {% if ex.thumbnail_file %}poster="{{ ex.thumbnail_file.url }}"{% endif %}>
+                        <source src="{{ ex.video_file.url }}">
+                        Your browser does not support the video element.
+                    </video>
+                    {% endif %}
 
                     {% if ex.benefits %}
                     <div class="p-2 rounded bg-light small text-muted mb-3" style="font-size: 0.78rem;">
@@ -111,6 +145,14 @@
                         <i class="bi bi-play-fill me-1"></i> Start Session
                     </button>
                 </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="text-center py-5 text-secondary">
+                <i class="bi bi-flower1 fs-1 d-block mb-2 text-success"></i>
+                <h5 class="fw-bold">No practices in this category yet</h5>
+                <p class="small mb-0">Check back soon for a new guided practice.</p>
             </div>
         </div>
         {% endfor %}
@@ -203,6 +245,63 @@
 
 {% block extra_js %}
 <script>
+    function continuePractice(exerciseId, progressSeconds) {
+        const player = document.getElementById(`practice-media-${exerciseId}`);
+        if (!player) return;
+        document.getElementById(`practice-${exerciseId}`).scrollIntoView({ behavior: 'smooth', block: 'center' });
+        player.currentTime = progressSeconds;
+        player.play();
+    }
+
+    document.querySelectorAll('[data-practice-player]').forEach(player => {
+        let sessionId = player.dataset.sessionId || null;
+        let lastCheckpoint = Number(player.dataset.progressSeconds || 0);
+        let creatingSession = null;
+        let savingProgress = false;
+
+        async function ensurePracticeSession() {
+            if (sessionId) return sessionId;
+            if (creatingSession) return creatingSession;
+            creatingSession = fetch(`/exercises/session/start/${player.dataset.practiceId}/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCookie('csrftoken') },
+            }).then(response => response.json()).then(data => {
+                if (data.status !== 'ok') throw new Error('Could not start practice session.');
+                sessionId = data.session_id;
+                player.dataset.sessionId = sessionId;
+                if (data.progress_seconds > 0 && player.currentTime === 0) {
+                    player.currentTime = data.progress_seconds;
+                }
+                return sessionId;
+            }).finally(() => { creatingSession = null; });
+            return creatingSession;
+        }
+
+        async function savePracticeProgress(force = false) {
+            if (savingProgress || (!force && player.currentTime - lastCheckpoint < 15)) return;
+            savingProgress = true;
+            try {
+                const id = await ensurePracticeSession();
+                const response = await fetch(`/exercises/session/${id}/progress/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ progress_seconds: player.currentTime }),
+                });
+                if (response.ok) lastCheckpoint = player.currentTime;
+            } finally {
+                savingProgress = false;
+            }
+        }
+
+        player.addEventListener('play', () => ensurePracticeSession().catch(console.error));
+        player.addEventListener('timeupdate', () => savePracticeProgress());
+        player.addEventListener('pause', () => savePracticeProgress(true));
+        player.addEventListener('ended', () => savePracticeProgress(true));
+    });
+
     let breathInterval = null;
     let currentExId = null;
     let currentDuration = 5;

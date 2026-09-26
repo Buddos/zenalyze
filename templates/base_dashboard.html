@@ -6,6 +6,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
     <title>{% block title %}Dashboard - Zenalyze{% endblock %}</title>
     
+    <!-- Immediate Theme Application to prevent FOUC -->
+    <script>
+        (function() {
+            try {
+                var t = localStorage.getItem('user_theme');
+                if (!t) {
+                    var m = document.cookie.match(/(?:^|;\s*)(?:user_theme|theme)=([^;]+)/);
+                    if (m) t = decodeURIComponent(m[1]);
+                }
+                if (t && (t === 'light' || t === 'dark' || t === 'auto')) {
+                    document.documentElement.setAttribute('data-theme', t);
+                }
+            } catch(e) {}
+        })();
+    </script>
+    
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
@@ -382,8 +398,114 @@
             if (e.key === 'Escape') closeSidebar();
         });
 
-        // Theme Switcher API Call
+        // ============ INSTANT THEME SWITCHER ============
+        function getEffectiveTheme(theme) {
+            if (theme === 'auto') {
+                return (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+            }
+            return theme;
+        }
+
+        function updateThemeUI(theme) {
+            const effective = getEffectiveTheme(theme);
+
+            // Update topbar theme button icon
+            const iconEl = document.getElementById('themeBtnIcon') || document.querySelector('#themeToggleBtn i');
+            if (iconEl) {
+                if (theme === 'dark') {
+                    iconEl.className = 'bi bi-moon-fill text-warning';
+                } else if (theme === 'auto') {
+                    iconEl.className = 'bi bi-circle-half text-info';
+                } else {
+                    iconEl.className = 'bi bi-sun-fill text-warning';
+                }
+            }
+
+            // Update topbar theme button title/tooltip
+            const toggleBtn = document.getElementById('themeToggleBtn');
+            if (toggleBtn) {
+                const nextMode = (effective === 'dark') ? 'Light Mode' : 'Dark Mode';
+                toggleBtn.setAttribute('title', `Theme: ${theme.charAt(0).toUpperCase() + theme.slice(1)} (Click to switch to ${nextMode})`);
+            }
+
+            // Update dropdown active class and checkmarks
+            document.querySelectorAll('[data-theme-val]').forEach(item => {
+                const val = item.getAttribute('data-theme-val');
+                const check = item.querySelector('.theme-check-icon');
+                if (val === theme) {
+                    item.classList.add('active');
+                    if (check) check.classList.remove('d-none');
+                } else {
+                    item.classList.remove('active');
+                    if (check) check.classList.add('d-none');
+                }
+            });
+
+            // Update settings page radio buttons if present
+            document.querySelectorAll('input[type="radio"][name="theme"]').forEach(radio => {
+                const isSelected = (radio.value === theme);
+                radio.checked = isSelected;
+                const label = radio.closest('label');
+                if (label) {
+                    if (isSelected) {
+                        label.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
+                    } else {
+                        label.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
+                    }
+                }
+            });
+
+            // Update Chart.js if present on the page
+            if (window.Chart) {
+                const isDark = (effective === 'dark');
+                if (window.Chart.defaults) {
+                    window.Chart.defaults.color = isDark ? '#94a3b8' : '#64748b';
+                    window.Chart.defaults.borderColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
+                }
+                if (window.Chart.instances) {
+                    Object.values(window.Chart.instances).forEach(chart => {
+                        try {
+                            if (chart && chart.options && chart.options.scales) {
+                                if (chart.options.scales.y && chart.options.scales.y.grid) {
+                                    chart.options.scales.y.grid.color = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(148, 163, 184, 0.12)';
+                                }
+                            }
+                            chart.update('none');
+                        } catch(e) {}
+                    });
+                }
+            }
+
+            // Dispatch custom event for any listening components
+            window.dispatchEvent(new CustomEvent('zenalyzeThemeChanged', { detail: { theme, effective } }));
+        }
+
+        // Apply theme immediately to DOM and persistent storage
+        function applyTheme(theme) {
+            if (!theme || !['light', 'dark', 'auto'].includes(theme)) {
+                theme = 'light';
+            }
+
+            // 1. Instant DOM attribute switch - 0ms delay, no reload
+            document.documentElement.setAttribute('data-theme', theme);
+
+            // 2. Immediate client storage persistence
+            try {
+                localStorage.setItem('user_theme', theme);
+            } catch(e) {}
+            document.cookie = `user_theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
+            document.cookie = `theme=${theme}; path=/; max-age=31536000; SameSite=Lax`;
+
+            // 3. Update all UI elements immediately
+            updateThemeUI(theme);
+        }
+
+        // Change theme: Instant UI switch + background async sync
         function changeTheme(theme) {
+            // Instantaneous execution
+            applyTheme(theme);
+
+            // Background async sync to server without blocking UI or reloading
             fetch('/api/update-theme/', {
                 method: 'POST',
                 headers: {
@@ -391,18 +513,38 @@
                     'X-CSRFToken': getCookie('csrftoken')
                 },
                 body: JSON.stringify({ theme: theme })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    window.location.reload();
-                }
-            })
-            .catch(() => {
-                document.cookie = `user_theme=${theme}; path=/; max-age=2592000`;
-                window.location.reload();
+            }).catch(err => {
+                console.warn('Background theme sync failed, preference cached locally:', err);
             });
         }
+
+        // Toggle directly between light and dark mode
+        function toggleTheme(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const current = document.documentElement.getAttribute('data-theme') || 'light';
+            const effective = getEffectiveTheme(current);
+            const nextTheme = (effective === 'dark') ? 'light' : 'dark';
+            changeTheme(nextTheme);
+        }
+
+        // Listen for OS system theme changes when in auto mode
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+                const current = document.documentElement.getAttribute('data-theme');
+                if (current === 'auto') {
+                    updateThemeUI('auto');
+                }
+            });
+        }
+
+        // Ensure UI state matches on initial load
+        document.addEventListener('DOMContentLoaded', () => {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            updateThemeUI(currentTheme);
+        });
 
         function getCookie(name) {
             let cookieValue = null;

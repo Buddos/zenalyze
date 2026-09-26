@@ -1,10 +1,12 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.cache import never_cache
 import json
+import re
 import urllib.parse
 import secrets
 import os
@@ -19,6 +21,8 @@ GOOGLE_CLIENT_ID     = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 GOOGLE_REDIRECT_URI  = os.environ.get('GOOGLE_REDIRECT_URI', 'http://localhost:8000/auth/google/callback/')
 
+@never_cache
+@ensure_csrf_cookie
 def login_view(request):
     if request.user.is_authenticated:
         return redirect('wellness:dashboard')
@@ -146,19 +150,75 @@ def profile_view(request):
 
 @login_required
 def settings_view(request):
-    settings, _ = UserSettings.objects.get_or_create(user=request.user)
+    user_settings, _ = UserSettings.objects.get_or_create(user=request.user)
     
     if request.method == 'POST':
-        settings.theme = request.POST.get('theme', 'light')
-        settings.notifications_enabled = 'notifications_enabled' in request.POST
-        settings.email_notifications = 'email_notifications' in request.POST
-        settings.save()
+        action = request.POST.get('action', '')
+
+        if action == 'update_username':
+            new_username = request.POST.get('username', '').strip()
+            if not new_username:
+                messages.error(request, "Username cannot be empty.")
+            elif not re.match(r'^[\w.@+-]+$', new_username):
+                messages.error(request, "Username contains invalid characters. Use letters, numbers, and @/./+/-/_ only.")
+            elif len(new_username) > 150:
+                messages.error(request, "Username cannot exceed 150 characters.")
+            elif User.objects.filter(username__iexact=new_username).exclude(id=request.user.id).exists():
+                messages.error(request, f"The username '@{new_username}' is already taken. Please choose another.")
+            else:
+                old_username = request.user.username
+                request.user.username = new_username
+                request.user.save(update_fields=['username'])
+                messages.success(request, f"Username changed to @{new_username}! This will be displayed in Community Chat.")
+            return redirect('accounts:settings')
+
+        elif action == 'change_password':
+            old_password = request.POST.get('old_password', '')
+            new_password = request.POST.get('new_password', '')
+            confirm_password = request.POST.get('confirm_password', '')
+
+            if not request.user.check_password(old_password):
+                messages.error(request, "Current password was entered incorrectly.")
+            elif new_password != confirm_password:
+                messages.error(request, "New passwords do not match.")
+            elif len(new_password) < 6:
+                messages.error(request, "New password must be at least 6 characters.")
+            else:
+                request.user.set_password(new_password)
+                request.user.save()
+                update_session_auth_hash(request, request.user)
+                messages.success(request, "Password updated successfully.")
+            return redirect('accounts:settings')
+
+        else:
+            # Also handle inline username change if submitted with preferences
+            new_username = request.POST.get('username', '').strip()
+            if new_username and new_username != request.user.username:
+                if not re.match(r'^[\w.@+-]+$', new_username):
+                    messages.error(request, "Username contains invalid characters.")
+                elif User.objects.filter(username__iexact=new_username).exclude(id=request.user.id).exists():
+                    messages.error(request, f"Username '@{new_username}' is already taken.")
+                else:
+                    request.user.username = new_username
+                    request.user.save(update_fields=['username'])
+                    messages.success(request, f"Username updated to @{new_username}!")
+
+            user_settings.theme = request.POST.get('theme', 'light')
+            user_settings.notifications_enabled = 'notifications_enabled' in request.POST
+            user_settings.email_notifications = 'email_notifications' in request.POST
+            weekly_day = request.POST.get('weekly_summary_day')
+            if weekly_day:
+                user_settings.weekly_summary_day = weekly_day
+            user_settings.save()
+            
+            request.session['user_theme'] = user_settings.theme
+            messages.success(request, "Your preferences have been saved.")
+            return redirect('accounts:settings')
         
-        request.session['user_theme'] = settings.theme
-        messages.success(request, "Your preferences have been saved.")
-        return redirect('accounts:settings')
-        
-    return render(request, 'accounts/settings.html', {'settings': settings})
+    return render(request, 'accounts/settings.html', {
+        'settings': user_settings,
+        'current_theme': user_settings.theme,
+    })
 
 def update_theme_api(request):
     if request.method == 'POST':
@@ -178,8 +238,9 @@ def update_theme_api(request):
             settings.theme = theme
             settings.save()
             
-        response = JsonResponse({'status': 'success', 'theme': theme})
-        response.set_cookie('theme', theme, max_age=365*24*60*60)
+        response = JsonResponse({'status': 'success', 'success': True, 'theme': theme})
+        response.set_cookie('theme', theme, max_age=365*24*60*60, samesite='Lax')
+        response.set_cookie('user_theme', theme, max_age=365*24*60*60, samesite='Lax')
         return response
         
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)

@@ -1,5 +1,7 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
+from django.utils import timezone
 
 class MoodEntry(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='mood_entries')
@@ -84,6 +86,19 @@ class JournalEntry(models.Model):
 
 
 class Exercise(models.Model):
+    CATEGORY_CHOICES = [
+        ('breathing', 'Breathing'),
+        ('meditation', 'Meditation'),
+        ('yoga_flow', 'Yoga Flow'),
+        ('grounding', 'Grounding'),
+        ('yoga', 'Yoga Flow'),
+        ('mindfulness', 'Grounding'),
+    ]
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('published', 'Published'),
+        ('archived', 'Archived'),
+    ]
     DIFFICULTY_CHOICES = [
         ('beginner', 'Beginner'),
         ('intermediate', 'Intermediate'),
@@ -92,12 +107,28 @@ class Exercise(models.Model):
 
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True)
-    category = models.CharField(max_length=100, default='meditation')
+    category = models.CharField(max_length=100, choices=CATEGORY_CHOICES, default='meditation')
     difficulty_level = models.CharField(max_length=20, choices=DIFFICULTY_CHOICES, default='beginner')
     duration_minutes = models.IntegerField(default=5)
     video_url = models.CharField(max_length=500, blank=True)
     video_type = models.CharField(max_length=20, default='youtube')
     thumbnail_image = models.CharField(max_length=500, blank=True)
+    video_file = models.FileField(
+        upload_to='exercises/videos/',
+        blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=['mp4', 'webm', 'ogv', 'mov'])],
+        help_text='Upload an MP4, WebM, OGV, or MOV video.',
+    )
+    thumbnail_file = models.ImageField(upload_to='exercises/thumbnails/', blank=True)
+    media_asset = models.ForeignKey(
+        'community.MediaAsset',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='practices',
+    )
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='draft')
+    published_at = models.DateTimeField(null=True, blank=True)
     instructions = models.TextField(blank=True)
     benefits = models.TextField(blank=True)
     is_guided = models.BooleanField(default=False)
@@ -114,12 +145,20 @@ class Exercise(models.Model):
     def __str__(self):
         return self.title
 
+    @property
+    def practice_media(self):
+        if self.media_asset_id:
+            return self.media_asset
+        return None
+
 
 class UserExerciseSession(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='exercise_sessions')
     exercise = models.ForeignKey(Exercise, on_delete=models.CASCADE, related_name='sessions')
     duration_minutes = models.IntegerField(default=0)
+    progress_seconds = models.PositiveIntegerField(default=0)
     completed = models.BooleanField(default=True)
+    started_at = models.DateTimeField(default=timezone.now)
     mood_before = models.IntegerField(default=5)
     mood_after = models.IntegerField(default=5)
     created_at = models.DateTimeField(auto_now_add=True)

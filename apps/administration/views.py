@@ -63,7 +63,7 @@ def toggle_user_status_view(request, user_id):
 
 @user_passes_test(is_admin_check, login_url='/auth/login/')
 def admin_moderation_view(request):
-    flagged = ContentModeration.objects.all().order_by('-created_at')[:40]
+    flagged = ContentModeration.objects.filter(status='pending').select_related('reported_by').order_by('-created_at')[:100]
     return render(request, 'administration/admin_moderation.html', {'flagged_items': flagged})
 
 @user_passes_test(is_admin_check, login_url='/auth/login/')
@@ -71,12 +71,22 @@ def admin_moderation_view(request):
 def review_moderation_view(request, item_id, action):
     item = get_object_or_404(ContentModeration, id=item_id)
     if action == 'approve':
+        if item.content_type == 'post':
+            post = get_object_or_404(CommunityPost, id=item.content_id)
+            if post.media_items.exclude(media_asset__processing_status='ready').exists():
+                messages.error(request, 'This post cannot be approved until all media processing is complete.')
+                return redirect('administration:moderation')
+            if post.moderation_status == 'pending':
+                post.moderation_status = 'visible'
+                post.save(update_fields=['moderation_status'])
         item.status = 'approved'
     elif action == 'reject':
         item.status = 'rejected'
-        # Hide content if post
         if item.content_type == 'post':
-            CommunityPost.objects.filter(id=item.content_id).update(status='hidden')
+            CommunityPost.objects.filter(id=item.content_id).update(status='hidden', moderation_status='removed')
+    else:
+        messages.error(request, 'Unknown moderation action.')
+        return redirect('administration:moderation')
     item.moderated_by = request.user
     item.moderated_at = timezone.now()
     item.save()

@@ -3,83 +3,206 @@
 
 {% block title %}Financial Wellness - Zenalyze{% endblock %}
 {% block topbar_title %}Financial Wellness Planner{% endblock %}
-{% block topbar_subtitle %}Cultivate mindful abundance, track expenses, and dissolve money anxiety{% endblock %}
+{% block topbar_subtitle %}A clear view of your money, one thoughtful choice at a time{% endblock %}
+
+{% block extra_css %}
+<style>
+    .financial-page {
+        --money-ink: #18332b;
+        --money-muted: #75847e;
+        --money-green: #13795b;
+        --money-green-soft: #e5f3ec;
+        --money-coral: #c85b4b;
+        --money-gold: #b78327;
+        --money-line: var(--border-color);
+        color: var(--text-primary);
+    }
+    .planner-heading {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-bottom: 1.25rem;
+    }
+    .planner-kicker {
+        color: var(--money-green);
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 750;
+        letter-spacing: 0.08em;
+    }
+    .planner-heading h2 {
+        margin: 0.25rem 0 0;
+        font-size: 1.55rem;
+        font-weight: 750;
+        color: var(--text-primary);
+    }
+    .planner-heading p { margin: 0.3rem 0 0; color: var(--text-secondary); font-size: 0.88rem; }
+    .planner-actions { display: flex; align-items: center; gap: 0.65rem; flex-wrap: wrap; }
+    .planner-actions .form-select { min-width: 150px; }
+    .planner-actions .form-select, .planner-actions .btn { min-height: 40px; border-radius: 7px; }
+    .planner-actions .btn-primary { background: var(--money-green); border-color: var(--money-green); }
+    .planner-actions .btn-primary:hover { background: #0e674d; border-color: #0e674d; }
+    .money-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.85rem; margin-bottom: 1rem; }
+    .money-summary {
+        min-height: 132px;
+        padding: 1rem 1.1rem;
+        background: var(--card-bg);
+        border: 1px solid var(--money-line);
+        border-radius: 7px;
+    }
+    .money-summary-label { display: flex; align-items: center; gap: 0.5rem; color: var(--text-secondary); font-size: 0.78rem; font-weight: 650; }
+    .money-summary-icon { display: inline-grid; place-items: center; width: 29px; height: 29px; border-radius: 6px; background: var(--money-green-soft); color: var(--money-green); }
+    .money-summary.expenses .money-summary-icon { background: #faece9; color: var(--money-coral); }
+    .money-summary.balance .money-summary-icon { background: #f6f0df; color: var(--money-gold); }
+    .money-summary-value { margin-top: 0.65rem; font-size: clamp(1.25rem, 2.4vw, 1.75rem); font-weight: 750; color: var(--text-primary); overflow-wrap: anywhere; }
+    .money-summary-note { margin-top: 0.15rem; color: var(--money-muted); font-size: 0.74rem; }
+    .planner-insights { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(250px, 0.8fr); gap: 0.85rem; margin-bottom: 1.35rem; }
+    .planner-panel { padding: 1.1rem 1.2rem; background: var(--card-bg); border: 1px solid var(--money-line); border-radius: 7px; }
+    .planner-panel-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+    .planner-panel-heading h3 { margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--text-primary); }
+    .planner-panel-heading p { margin: 0.25rem 0 0; color: var(--text-secondary); font-size: 0.76rem; }
+    .cashflow-items { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem; }
+    .cashflow-label { color: var(--text-secondary); font-size: 0.74rem; }
+    .cashflow-amount { margin-top: 0.2rem; font-size: 1.05rem; font-weight: 700; color: var(--text-primary); }
+    .cashflow-amount.income { color: var(--money-green); }
+    .cashflow-amount.expense { color: var(--money-coral); }
+    .savings-meter { height: 5px; margin-top: 0.85rem; background: var(--hover-bg); border-radius: 5px; overflow: hidden; }
+    .savings-meter span { display: block; height: 100%; background: var(--money-green); border-radius: inherit; }
+    .spending-chart-wrap { position: relative; height: 172px; margin-top: 0.5rem; }
+    .spending-empty { display: grid; place-items: center; min-height: 172px; color: var(--text-secondary); text-align: center; font-size: 0.82rem; }
+    .transactions-section { border-top: 1px solid var(--money-line); padding-top: 1.2rem; }
+    .transactions-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 0.75rem; margin-bottom: 0.75rem; }
+    .transactions-heading h3 { margin: 0; font-size: 1rem; font-weight: 720; }
+    .transactions-heading span { color: var(--text-secondary); font-size: 0.76rem; }
+    .transaction-table { margin: 0; }
+    .transaction-table thead th { padding: 0.65rem 0.75rem; color: var(--text-secondary); border-bottom-color: var(--money-line); font-size: 0.69rem; text-transform: uppercase; font-weight: 700; }
+    .transaction-table tbody td { padding: 0.78rem 0.75rem; border-bottom-color: var(--money-line); vertical-align: middle; }
+    .transaction-category { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 650; }
+    .category-marker { width: 8px; height: 8px; border-radius: 50%; background: #98a49f; }
+    .category-marker.income { background: var(--money-green); }
+    .category-marker.expense { background: var(--money-coral); }
+    .transaction-description { color: var(--text-secondary); font-size: 0.78rem; }
+    .transaction-amount { font-weight: 700; white-space: nowrap; }
+    .transaction-amount.income { color: var(--money-green); }
+    .transaction-amount.expense { color: var(--money-coral); }
+    .transaction-date { color: var(--text-secondary); font-size: 0.78rem; white-space: nowrap; }
+    .transaction-delete { border: 0; background: transparent; color: var(--text-secondary); padding: 0.35rem; border-radius: 5px; }
+    .transaction-delete:hover { background: #faece9; color: var(--money-coral); }
+    .financial-empty { padding: 2.8rem 1rem; text-align: center; color: var(--text-secondary); }
+    .financial-empty i { display: block; margin-bottom: 0.6rem; color: var(--money-green); font-size: 1.7rem; }
+    #newFinancialModal .modal-content { border-radius: 8px !important; }
+    #newFinancialModal .form-control, #newFinancialModal .form-select { min-height: 42px; border-radius: 6px; }
+    @media (max-width: 760px) {
+        .money-summary-grid { grid-template-columns: 1fr; gap: 0.55rem; }
+        .money-summary { min-height: 0; padding: 0.85rem 1rem; }
+        .money-summary-value { margin-top: 0.4rem; }
+        .planner-insights { grid-template-columns: 1fr; }
+    }
+</style>
+{% endblock %}
 
 {% block dashboard_content %}
-<div class="container-fluid">
-    <!-- Header with Currency Selector & Add Button -->
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
-        <form method="POST" class="d-flex align-items-center gap-2">
-            {% csrf_token %}
-            <span class="small text-muted fw-bold">Display Currency:</span>
-            <select name="display_currency" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()" style="width: 120px;">
-                <option value="KES" {% if display_currency == 'KES' %}selected{% endif %}>KES (KSh)</option>
-                <option value="USD" {% if display_currency == 'USD' %}selected{% endif %}>USD ($)</option>
-                <option value="EUR" {% if display_currency == 'EUR' %}selected{% endif %}>EUR (€)</option>
-            </select>
-        </form>
-
-        <button class="btn btn-primary rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#newFinancialModal">
-            <i class="bi bi-plus-lg me-1"></i> Add Transaction
-        </button>
-    </div>
-
-    <!-- Financial Cards Row -->
-    <div class="row g-3 mb-4">
-        <div class="col-md-4">
-            <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
-                <div class="small text-muted mb-1">Total Income Recorded</div>
-                <div class="fs-3 fw-bold text-success">{{ display_symbol }} {{ total_income|floatformat:2 }}</div>
-            </div>
+<div class="container-fluid financial-page">
+    <header class="planner-heading">
+        <div>
+            <div class="planner-kicker">Money, with more clarity</div>
+            <h2>Your financial picture</h2>
+            <p>Track the flow, notice patterns, and plan your next step.</p>
         </div>
-        <div class="col-md-4">
-            <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
-                <div class="small text-muted mb-1">Total Expenses Recorded</div>
-                <div class="fs-3 fw-bold text-danger">{{ display_symbol }} {{ total_expense|floatformat:2 }}</div>
-            </div>
+        <div class="planner-actions">
+            <form method="GET" class="d-flex align-items-center gap-2" aria-label="Choose display currency">
+                <label for="displayCurrency" class="small fw-semibold text-secondary mb-0">Currency</label>
+                <select id="displayCurrency" name="currency" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="KES" {% if display_currency == 'KES' %}selected{% endif %}>KES · KSh</option>
+                    <option value="USD" {% if display_currency == 'USD' %}selected{% endif %}>USD · $</option>
+                    <option value="EUR" {% if display_currency == 'EUR' %}selected{% endif %}>EUR · €</option>
+                </select>
+            </form>
+            <button class="btn btn-primary px-3 fw-semibold" data-bs-toggle="modal" data-bs-target="#newFinancialModal">
+                <i class="bi bi-plus-lg me-1" aria-hidden="true"></i> Add transaction
+            </button>
         </div>
-        <div class="col-md-4">
-            <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
-                <div class="small text-muted mb-1">Net Balance</div>
-                <div class="fs-3 fw-bold {% if net_balance >= 0 %}text-primary{% else %}text-danger{% endif %}">
-                    {{ display_symbol }} {{ net_balance|floatformat:2 }}
+    </header>
+
+    <section class="money-summary-grid" aria-label="Financial totals in {{ display_currency }}">
+        <article class="money-summary">
+            <div class="money-summary-label"><span class="money-summary-icon"><i class="bi bi-arrow-down-left" aria-hidden="true"></i></span> Total income</div>
+            <div class="money-summary-value">{{ display_symbol }} {{ total_income|floatformat:2 }}</div>
+            <div class="money-summary-note">All recorded income in {{ display_currency }}</div>
+        </article>
+        <article class="money-summary expenses">
+            <div class="money-summary-label"><span class="money-summary-icon"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></span> Total outflow</div>
+            <div class="money-summary-value">{{ display_symbol }} {{ total_expense|floatformat:2 }}</div>
+            <div class="money-summary-note">All recorded spending in {{ display_currency }}</div>
+        </article>
+        <article class="money-summary balance">
+            <div class="money-summary-label"><span class="money-summary-icon"><i class="bi bi-wallet2" aria-hidden="true"></i></span> Net balance</div>
+            <div class="money-summary-value">{{ display_symbol }} {{ net_balance|floatformat:2 }}</div>
+            <div class="money-summary-note">Income minus recorded outflow</div>
+        </article>
+    </section>
+
+    <section class="planner-insights" aria-label="Spending insights">
+        <article class="planner-panel">
+            <div class="planner-panel-heading">
+                <div>
+                    <h3>This month</h3>
+                    <p>Cash flow recorded during {{ month_label }}</p>
+                </div>
+                <span class="small text-secondary">{{ display_currency }}</span>
+            </div>
+            <div class="cashflow-items">
+                <div><div class="cashflow-label">Income</div><div class="cashflow-amount income">{{ display_symbol }} {{ month_income|floatformat:2 }}</div></div>
+                <div><div class="cashflow-label">Outflow</div><div class="cashflow-amount expense">{{ display_symbol }} {{ month_expenses|floatformat:2 }}</div></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-3 small">
+                <span class="text-secondary">Savings rate</span>
+                <strong>{{ savings_rate|floatformat:0 }}%</strong>
+            </div>
+            <div class="savings-meter" role="img" aria-label="Savings rate {{ savings_rate|floatformat:0 }} percent">
+                <span style="width: {{ savings_progress }}%;"></span>
+            </div>
+        </article>
+        <article class="planner-panel">
+            <div class="planner-panel-heading">
+                <div>
+                    <h3>Where it goes</h3>
+                    <p>Recorded outflow by category</p>
                 </div>
             </div>
-        </div>
-    </div>
+            {% if spending_categories %}
+            <div class="spending-chart-wrap"><canvas id="spendingChart" aria-label="Spending by category"></canvas></div>
+            {% else %}
+            <div class="spending-empty"><div><i class="bi bi-pie-chart d-block fs-4 mb-2"></i>No spending to chart yet</div></div>
+            {% endif %}
+        </article>
+    </section>
 
-    <!-- Transactions List -->
-    <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
-        <h5 class="fw-bold mb-3" style="color: var(--text-primary);"><i class="bi bi-wallet2 text-primary me-2"></i> Recent Financial Entries</h5>
+    <section class="transactions-section" aria-labelledby="transactionsTitle">
+        <div class="transactions-heading">
+            <h3 id="transactionsTitle">Recent transactions</h3>
+            <span>Showing the latest 30 in {{ display_currency }}</span>
+        </div>
         {% if entries %}
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="text-muted small">
-                    <tr>
-                        <th>Category</th>
-                        <th>Description</th>
-                        <th>Amount</th>
-                        <th>Date</th>
-                        <th>Actions</th>
-                    </tr>
+            <table class="table table-hover transaction-table">
+                <thead>
+                    <tr><th>Category</th><th>Description</th><th class="text-end">Amount</th><th>Date</th><th><span class="visually-hidden">Actions</span></th></tr>
                 </thead>
-                <tbody class="small">
+                <tbody>
                     {% for item in entries %}
                     <tr>
-                        <td>
-                            <span class="badge {% if item.category == 'Income' %}bg-success bg-opacity-10 text-success{% else %}bg-secondary bg-opacity-10 text-secondary{% endif %} fw-bold px-2 py-1">
-                                {{ item.category }}
-                            </span>
-                        </td>
-                        <td style="color: var(--text-primary);">{{ item.description|default:"—" }}</td>
-                        <td class="fw-bold {% if item.category == 'Income' %}text-success{% else %}text-danger{% endif %}">
-                            {{ item.currency }} {{ item.amount }}
-                        </td>
-                        <td class="text-muted">{{ item.created_at|date:"M d, Y" }}</td>
-                        <td>
-                            <form method="POST" action="{% url 'wellness:financial_delete' item.id %}" style="display:inline;">
+                        <td><span class="transaction-category"><span class="category-marker {% if item.category == 'Income' %}income{% else %}expense{% endif %}"></span>{{ item.category }}</span></td>
+                        <td><span class="transaction-description">{{ item.description|default:item.subcategory|default:"No description" }}</span></td>
+                        <td class="text-end"><span class="transaction-amount {% if item.category == 'Income' %}income{% else %}expense{% endif %}">{% if item.category == 'Income' %}+{% else %}−{% endif %} {{ display_symbol }} {{ item.amount|floatformat:2 }}</span></td>
+                        <td><span class="transaction-date">{{ item.created_at|date:"M j, Y" }}</span></td>
+                        <td class="text-end">
+                            <form method="POST" action="{% url 'wellness:financial_delete' item.id %}">
                                 {% csrf_token %}
-                                <button type="submit" class="btn btn-sm btn-link text-danger p-0">Delete</button>
+                                <input type="hidden" name="currency" value="{{ display_currency }}">
+                                <button type="submit" class="transaction-delete" aria-label="Delete {{ item.category }} transaction" title="Delete transaction"><i class="bi bi-trash3" aria-hidden="true"></i></button>
                             </form>
                         </td>
                     </tr>
@@ -88,62 +211,98 @@
             </table>
         </div>
         {% else %}
-        <div class="text-center py-5 text-muted small">
-            No financial entries recorded yet. Click "Add Transaction" to start tracking mindfully!
+        <div class="financial-empty">
+            <i class="bi bi-journal-check" aria-hidden="true"></i>
+            <div class="fw-semibold text-primary">Your {{ display_currency }} ledger is ready</div>
+            <div class="small mt-1">Add your first transaction to see your financial picture take shape.</div>
         </div>
         {% endif %}
-    </div>
+    </section>
 </div>
 
-<!-- Modal -->
+{{ spending_categories|json_script:"spendingCategories" }}
+{{ spending_values|json_script:"spendingValues" }}
+
 <div class="modal fade" id="newFinancialModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-4 border-0 p-4" style="background: var(--card-bg);">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" style="color: var(--text-primary);">Add Financial Entry</h5>
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 p-3" style="background: var(--card-bg);">
+            <div class="modal-header border-0 pb-1">
+                <div><div class="planner-kicker">New ledger entry</div><h5 class="modal-title fw-bold mt-1" style="color: var(--text-primary);">Add transaction</h5></div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form method="POST" action="{% url 'wellness:financial' %}">
                 {% csrf_token %}
+                <input type="hidden" name="action" value="create_entry">
                 <div class="modal-body py-3">
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Type & Category</label>
-                        <select class="form-select rounded-3" name="category" required>
-                            <option value="Income">💰 Income</option>
-                            <option value="Housing">🏠 Housing / Rent</option>
-                            <option value="Food">🍲 Food & Groceries</option>
-                            <option value="Transportation">🚗 Transportation</option>
-                            <option value="Health">🧘 Mental & Physical Health</option>
-                            <option value="Savings">🌱 Savings & Investments</option>
-                            <option value="Entertainment">🎬 Leisure & Rest</option>
-                            <option value="Other">📦 Other</option>
+                        <label class="form-label fw-semibold small" for="financialCategory">Type and category</label>
+                        <select id="financialCategory" class="form-select" name="category" required>
+                            <option value="Income">Income</option>
+                            <option value="Housing">Housing</option>
+                            <option value="Food">Food and groceries</option>
+                            <option value="Transportation">Transportation</option>
+                            <option value="Health">Health and wellbeing</option>
+                            <option value="Savings">Savings and investments</option>
+                            <option value="Entertainment">Leisure</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
                     <div class="row g-2 mb-3">
                         <div class="col-8">
-                            <label class="form-label fw-bold small">Amount</label>
-                            <input type="number" step="0.01" class="form-control rounded-3" name="amount" required placeholder="0.00">
+                            <label class="form-label fw-semibold small" for="financialAmount">Amount</label>
+                            <input id="financialAmount" type="number" min="0.01" step="0.01" class="form-control" name="amount" required placeholder="0.00">
                         </div>
                         <div class="col-4">
-                            <label class="form-label fw-bold small">Currency</label>
-                            <select class="form-select rounded-3" name="currency">
-                                <option value="KES">KES</option>
-                                <option value="USD">USD</option>
-                                <option value="EUR">EUR</option>
+                            <label class="form-label fw-semibold small" for="financialCurrency">Currency</label>
+                            <select id="financialCurrency" class="form-select" name="currency">
+                                <option value="KES" {% if display_currency == 'KES' %}selected{% endif %}>KES</option>
+                                <option value="USD" {% if display_currency == 'USD' %}selected{% endif %}>USD</option>
+                                <option value="EUR" {% if display_currency == 'EUR' %}selected{% endif %}>EUR</option>
                             </select>
                         </div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Description</label>
-                        <input type="text" class="form-control rounded-3" name="description" placeholder="e.g. Therapy session, organic groceries...">
+                        <label class="form-label fw-semibold small" for="financialDescription">Description</label>
+                        <input id="financialDescription" type="text" class="form-control" name="description" maxlength="500" placeholder="What was this transaction for?">
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-secondary rounded-pill px-4 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 btn-sm fw-bold">Save Entry</button>
+                    <button type="button" class="btn btn-outline-secondary px-3 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary px-3 btn-sm fw-semibold">Save transaction</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const categories = JSON.parse(document.getElementById('spendingCategories').textContent);
+    const values = JSON.parse(document.getElementById('spendingValues').textContent);
+    const chartCanvas = document.getElementById('spendingChart');
+    if (chartCanvas && window.Chart && categories.length) {
+        new Chart(chartCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: categories,
+                datasets: [{
+                    data: values,
+                    backgroundColor: ['#16815f', '#e19a42', '#ce6654', '#458b98', '#947443', '#81968b', '#bd8190'],
+                    borderWidth: 2,
+                    borderColor: getComputedStyle(document.documentElement).getPropertyValue('--card-bg').trim() || '#ffffff',
+                    hoverOffset: 4,
+                }],
+            },
+            options: {
+                maintainAspectRatio: false,
+                cutout: '66%',
+                plugins: {
+                    legend: { position: 'right', labels: { boxWidth: 9, boxHeight: 9, usePointStyle: true, pointStyle: 'circle', padding: 12, color: '#66756f', font: { size: 11 } } },
+                    tooltip: { callbacks: { label: context => ` ${context.label}: {{ display_symbol }} ${context.raw.toLocaleString()}` } },
+                },
+            },
+        });
+    }
+</script>
 {% endblock %}

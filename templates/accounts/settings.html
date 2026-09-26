@@ -8,6 +8,39 @@
 {% block dashboard_content %}
 <div class="container-fluid">
     <div class="row g-4">
+        <!-- Community Identity & Username -->
+        <div class="col-12">
+            <div class="card p-4 rounded-4 border shadow-sm" style="background: var(--card-bg);">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div>
+                        <h5 class="fw-bold mb-1" style="color: var(--text-primary);"><i class="bi bi-chat-dots-fill text-primary me-2"></i> Community Chat Username</h5>
+                        <p class="text-muted small mb-0">This is the public handle displayed to other members when chatting in Community Chat.</p>
+                    </div>
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill small">
+                        Current: @{{ request.user.username }}
+                    </span>
+                </div>
+
+                <form method="POST" class="row g-3 align-items-end">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="update_username">
+                    <div class="col-md-8 col-lg-6">
+                        <label class="form-label fw-bold small">Change Username</label>
+                        <div class="input-group">
+                            <span class="input-group-text" style="background: var(--hover-bg); border-color: var(--border-color); color: var(--text-secondary); font-weight: 700;">@</span>
+                            <input type="text" name="username" class="form-control rounded-end-3 py-2" value="{{ request.user.username }}" required maxlength="150" pattern="[\w.@+-]+" title="Letters, digits and @/./+/-/_ only">
+                        </div>
+                        <div class="form-text small text-muted">Must be unique across Zenalyze. Letters, numbers, and @/./+/-/_ only.</div>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <button type="submit" class="btn btn-primary px-4 py-2 rounded-pill fw-bold w-100">
+                            Update Username
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         <!-- Appearance & Preferences -->
         <div class="col-lg-6">
             <div class="card p-4 rounded-4 border shadow-sm h-100" style="background: var(--card-bg);">
@@ -21,21 +54,21 @@
                     <div class="row g-3 mb-4">
                         <div class="col-4">
                             <label class="w-100 p-3 rounded-4 border text-center cursor-pointer {% if current_theme == 'light' %}border-primary bg-primary bg-opacity-10{% endif %}" style="cursor: pointer;">
-                                <input type="radio" name="theme" value="light" class="d-none" {% if current_theme == 'light' %}checked{% endif %} onchange="this.form.submit()">
+                                <input type="radio" name="theme" value="light" class="d-none" {% if current_theme == 'light' %}checked{% endif %} onchange="changeTheme(this.value)">
                                 <i class="bi bi-sun-fill fs-3 text-warning d-block mb-1"></i>
                                 <div class="fw-bold small">Light</div>
                             </label>
                         </div>
                         <div class="col-4">
                             <label class="w-100 p-3 rounded-4 border text-center cursor-pointer {% if current_theme == 'dark' %}border-primary bg-primary bg-opacity-10{% endif %}" style="cursor: pointer;">
-                                <input type="radio" name="theme" value="dark" class="d-none" {% if current_theme == 'dark' %}checked{% endif %} onchange="this.form.submit()">
+                                <input type="radio" name="theme" value="dark" class="d-none" {% if current_theme == 'dark' %}checked{% endif %} onchange="changeTheme(this.value)">
                                 <i class="bi bi-moon-stars-fill fs-3 text-primary d-block mb-1"></i>
                                 <div class="fw-bold small">Dark</div>
                             </label>
                         </div>
                         <div class="col-4">
                             <label class="w-100 p-3 rounded-4 border text-center cursor-pointer {% if current_theme == 'auto' %}border-primary bg-primary bg-opacity-10{% endif %}" style="cursor: pointer;">
-                                <input type="radio" name="theme" value="auto" class="d-none" {% if current_theme == 'auto' %}checked{% endif %} onchange="this.form.submit()">
+                                <input type="radio" name="theme" value="auto" class="d-none" {% if current_theme == 'auto' %}checked{% endif %} onchange="changeTheme(this.value)">
                                 <i class="bi bi-circle-half fs-3 text-info d-block mb-1"></i>
                                 <div class="fw-bold small">Auto</div>
                             </label>

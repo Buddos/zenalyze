@@ -1,5 +1,51 @@
 from django.db import models
 from django.conf import settings
+from django.core.validators import FileExtensionValidator
+
+
+class MediaAsset(models.Model):
+    TYPE_CHOICES = [
+        ('image', 'Image'),
+        ('video', 'Video'),
+        ('audio', 'Audio'),
+    ]
+    PROCESSING_CHOICES = [
+        ('uploading', 'Uploading'),
+        ('processing', 'Processing'),
+        ('ready', 'Ready'),
+        ('failed', 'Failed'),
+    ]
+
+    asset_type = models.CharField(max_length=10, choices=TYPE_CHOICES)
+    file = models.FileField(
+        upload_to='media-assets/%Y/%m/',
+        validators=[FileExtensionValidator(allowed_extensions=[
+            'jpg', 'jpeg', 'png', 'gif', 'webp', 'mp4', 'webm', 'ogv', 'mov', 'mp3', 'm4a', 'ogg', 'wav',
+        ])],
+    )
+    thumbnail = models.ImageField(upload_to='media-assets/thumbnails/%Y/%m/', blank=True)
+    duration_seconds = models.PositiveIntegerField(null=True, blank=True)
+    uploaded_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='uploaded_media')
+    processing_status = models.CharField(max_length=12, choices=PROCESSING_CHOICES, default='ready')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f'{self.get_asset_type_display()}: {self.file.name}'
+
+
+class PostMedia(models.Model):
+    post = models.ForeignKey('CommunityPost', on_delete=models.CASCADE, related_name='media_items')
+    media_asset = models.ForeignKey(MediaAsset, on_delete=models.CASCADE, related_name='post_links')
+    position = models.PositiveSmallIntegerField(default=0)
+
+    class Meta:
+        ordering = ['position', 'id']
+        constraints = [
+            models.UniqueConstraint(fields=['post', 'position'], name='unique_post_media_position'),
+        ]
 
 class CommunityPost(models.Model):
     STATUS_CHOICES = [
@@ -7,10 +53,15 @@ class CommunityPost(models.Model):
         ('hidden', 'Hidden'),
         ('deleted', 'Deleted'),
     ]
+    MODERATION_STATUS_CHOICES = [
+        ('pending', 'Pending review'),
+        ('visible', 'Visible'),
+        ('removed', 'Removed'),
+    ]
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='community_posts')
-    title = models.CharField(max_length=255)
-    content = models.TextField()
+    title = models.CharField(max_length=255, blank=True)
+    content = models.TextField(blank=True)
     category = models.CharField(max_length=100, default='General')
     is_anonymous = models.BooleanField(default=False)
     is_pinned = models.BooleanField(default=False)
@@ -19,6 +70,7 @@ class CommunityPost(models.Model):
     likes_count = models.IntegerField(default=0)
     comments_count = models.IntegerField(default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='active')
+    moderation_status = models.CharField(max_length=12, choices=MODERATION_STATUS_CHOICES, default='visible')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -26,7 +78,7 @@ class CommunityPost(models.Model):
         ordering = ['-is_pinned', '-created_at']
 
     def __str__(self):
-        return self.title
+        return self.title or f'Post by {self.user.username}'
 
     @property
     def author_display(self):
@@ -99,6 +151,7 @@ class AnonymousChatSession(models.Model):
     participant1 = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='anon_sessions_1')
     participant2 = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='anon_sessions_2')
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='waiting')
+    topic = models.CharField(max_length=80, default='General Support', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     ended_at = models.DateTimeField(null=True, blank=True)
 

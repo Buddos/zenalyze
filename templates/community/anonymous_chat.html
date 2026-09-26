@@ -1,59 +1,233 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}Anonymous Peer Chat - Zenalyze{% endblock %}
-{% block page_title %}Anonymous Peer Support{% endblock %}
-{% block page_subtitle %}Connect anonymously with someone who understands what you are going through{% endblock %}
+{% block title %}Anonymous Peer Match - Zenalyze{% endblock %}
+{% block topbar_title %}Anonymous Peer Support{% endblock %}
+{% block topbar_subtitle %}Connect anonymously with someone facing the exact same struggles as you{% endblock %}
 
 {% block extra_css %}
 <style>
-    .anon-banner {
-        background: linear-gradient(135deg, #1e293b, #0f172a);
+    /* Privacy Hero */
+    .anon-hero-card {
+        background: linear-gradient(135deg, #0f172a, #1e293b);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 24px;
+        padding: 2.25rem;
         color: white;
-        border-radius: 20px;
-        padding: 2.5rem;
-        text-align: center;
         margin-bottom: 2rem;
         position: relative;
         overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
     }
-    .anon-banner::before {
+
+    .anon-hero-card::after {
         content: '🔒';
         position: absolute;
-        right: 1.5rem;
-        bottom: 0.5rem;
-        font-size: 5rem;
-        opacity: 0.1;
+        right: 2rem;
+        bottom: -1rem;
+        font-size: 8rem;
+        opacity: 0.04;
+        pointer-events: none;
     }
-    .session-lobby-card {
+
+    .privacy-pill-group {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-top: 1.25rem;
+    }
+
+    .privacy-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(8px);
+        padding: 0.35rem 0.85rem;
+        border-radius: 50px;
+        font-size: 0.8rem;
+        color: #e2e8f0;
+    }
+
+    /* Topic Selection Cards */
+    .topic-selector-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .topic-card-option {
+        background: var(--card-bg);
+        border: 2px solid var(--border-color);
+        border-radius: 18px;
+        padding: 1.25rem 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .topic-card-option:hover {
+        transform: translateY(-2px);
+        border-color: #667eea;
+        box-shadow: 0 8px 24px rgba(102, 126, 234, 0.12);
+    }
+
+    .topic-card-option.selected {
+        border-color: #667eea;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08));
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+    }
+
+    .topic-card-option.selected::after {
+        content: '✓';
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        width: 22px;
+        height: 22px;
+        background: #667eea;
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 800;
+    }
+
+    .topic-icon {
+        font-size: 2.2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .topic-label {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+    }
+
+    .topic-desc {
+        font-size: 0.76rem;
+        color: var(--text-secondary);
+        line-height: 1.4;
+    }
+
+    /* Radar Match Search Animation */
+    .radar-search-card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
-        border-radius: 20px;
-        padding: 2.5rem 2rem;
+        border-radius: 24px;
+        padding: 3rem 2rem;
         text-align: center;
-        max-width: 540px;
+        max-width: 600px;
         margin: 0 auto;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.03);
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+        position: relative;
     }
+
+    .radar-pulse-wrap {
+        position: relative;
+        width: 140px;
+        height: 140px;
+        margin: 0 auto 2rem auto;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .radar-center-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        z-index: 2;
+        box-shadow: 0 4px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .radar-wave {
+        position: absolute;
+        border: 2px solid #667eea;
+        border-radius: 50%;
+        width: 100%;
+        height: 100%;
+        animation: radarRipple 2s cubic-bezier(0.1, 0.2, 0.3, 1) infinite;
+        opacity: 0;
+    }
+
+    .radar-wave:nth-child(2) {
+        animation-delay: 0.6s;
+    }
+
+    .radar-wave:nth-child(3) {
+        animation-delay: 1.2s;
+    }
+
+    @keyframes radarRipple {
+        0% {
+            transform: scale(0.4);
+            opacity: 0.8;
+        }
+        100% {
+            transform: scale(1.6);
+            opacity: 0;
+        }
+    }
+
+    /* Active Chat Container */
     .active-chat-box {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
-        border-radius: 20px;
+        border-radius: 24px;
         overflow: hidden;
         display: flex;
         flex-direction: column;
-        height: 600px;
-        max-width: 800px;
+        height: calc(100vh - 220px);
+        min-height: 600px;
+        max-width: 860px;
         margin: 0 auto;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.05);
+        box-shadow: 0 15px 50px rgba(0, 0, 0, 0.06);
+        position: relative;
     }
+
     .active-chat-header {
-        padding: 1.25rem 1.75rem;
-        background: var(--hover-bg);
+        padding: 1.1rem 1.5rem;
+        background: var(--card-bg);
         border-bottom: 1px solid var(--border-color);
         display: flex;
         justify-content: space-between;
         align-items: center;
+        flex-shrink: 0;
+        z-index: 5;
     }
+
+    /* Match Reveal Banner */
+    .match-reveal-banner {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(102, 126, 234, 0.1));
+        border-bottom: 1px solid rgba(16, 185, 129, 0.25);
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        animation: slideDownMatch 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    @keyframes slideDownMatch {
+        from { transform: translateY(-100%); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
     .active-chat-msgs {
         flex: 1;
         padding: 1.5rem;
@@ -61,133 +235,507 @@
         display: flex;
         flex-direction: column;
         gap: 1rem;
+        background: var(--bg-primary);
+        scroll-behavior: smooth;
     }
-    .msg-bubble {
-        max-width: 75%;
-        padding: 0.75rem 1.15rem;
-        border-radius: 16px;
-        font-size: 0.95rem;
-        line-height: 1.5;
+
+    .anon-msg-row {
+        display: flex;
+        gap: 0.65rem;
+        max-width: 80%;
+        animation: fadeInMsg 0.2s ease-out;
     }
-    .msg-bubble.mine {
+
+    .anon-msg-row.mine {
         align-self: flex-end;
-        background: #667eea;
+        flex-direction: row-reverse;
+    }
+
+    .anon-msg-row.theirs {
+        align-self: flex-start;
+    }
+
+    .anon-avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 50%;
+        background: #334155;
+        color: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.95rem;
+        flex-shrink: 0;
+    }
+
+    .anon-msg-row.mine .anon-avatar {
+        background: linear-gradient(135deg, #667eea, #764ba2);
+        color: white;
+    }
+
+    .anon-msg-bubble {
+        padding: 0.75rem 1.15rem;
+        border-radius: 18px;
+        font-size: 0.93rem;
+        line-height: 1.5;
+        word-break: break-word;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    }
+
+    .anon-msg-row.mine .anon-msg-bubble {
+        background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
         border-bottom-right-radius: 4px;
     }
-    .msg-bubble.theirs {
-        align-self: flex-start;
-        background: var(--hover-bg);
+
+    .anon-msg-row.theirs .anon-msg-bubble {
+        background: var(--card-bg);
         color: var(--text-primary);
+        border: 1px solid var(--border-color);
         border-bottom-left-radius: 4px;
     }
-    .active-chat-footer {
+
+    .anon-chat-footer {
         padding: 1rem 1.5rem;
         border-top: 1px solid var(--border-color);
         background: var(--card-bg);
+        flex-shrink: 0;
+    }
+
+    .icebreaker-pills {
+        display: flex;
+        gap: 0.4rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .icebreaker-chip {
+        background: var(--hover-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 50px;
+        padding: 0.3rem 0.8rem;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .icebreaker-chip:hover {
+        background: rgba(102, 126, 234, 0.1);
+        color: #667eea;
+        border-color: #667eea;
+    }
+
+    .ended-overlay {
+        position: absolute;
+        inset: 0;
+        background: rgba(15, 23, 42, 0.88);
+        backdrop-filter: blur(8px);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+        z-index: 50;
+        color: white;
+        border-radius: 24px;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="anon-banner">
-    <h2 class="fw-bold"><i class="bi bi-incognito me-2"></i> 100% Private Peer Chat</h2>
-    <p class="text-white-50 mb-0">No names, no emails, no profile photos. Just real humans supporting each other through life's hurdles.</p>
+<!-- Privacy & Topic Match Hero -->
+<div class="anon-hero-card">
+    <div class="d-flex align-items-center gap-3 mb-2">
+        <span class="badge bg-success bg-opacity-25 text-success p-2 px-3" style="border-radius: 50px; font-weight: 600;">
+            <i class="bi bi-shield-check me-1"></i> Private & Anonymous Matching
+        </span>
+    </div>
+    <h3 class="fw-bold mb-1">Mutual Struggle Peer Matching</h3>
+    <p class="text-white-50 mb-0" style="max-width: 650px;">
+        Pick what is weighing on you right now. Zenalyze instantly pairs you with a peer who is walking through the exact same challenge.
+    </p>
+
+    <div class="privacy-pill-group">
+        <div class="privacy-pill">
+            <i class="bi bi-shuffle text-warning"></i> Same-Issue Matchmaker
+        </div>
+        <div class="privacy-pill">
+            <i class="bi bi-eye-slash-fill text-info"></i> Zero Profile Identifiers
+        </div>
+        <div class="privacy-pill">
+            <i class="bi bi-lock-fill text-success"></i> Isolated 1-on-1 Room
+        </div>
+        <div class="privacy-pill">
+            <i class="bi bi-eraser-fill text-danger"></i> Auto-Wipe upon Exit
+        </div>
+    </div>
 </div>
 
 {% if not active_session %}
-<!-- Lobby: Join or Create Room -->
-<div class="session-lobby-card">
-    <div class="mb-4">
-        <i class="bi bi-shield-lock-fill text-primary" style="font-size: 3.5rem;"></i>
-        <h4 class="fw-bold mt-2">Enter the Peer Room</h4>
-        <p class="text-secondary small">Start an open chat session or join a room using a shared 6-character code.</p>
-    </div>
-
-    <form method="POST" action="{% url 'community:start_anon_chat' %}" class="mb-4">
-        {% csrf_token %}
-        <button type="submit" class="btn btn-primary w-100 py-3" style="border-radius: 14px; font-weight: 600;">
-            <i class="bi bi-plus-circle me-2"></i> Create New Chat Room
-        </button>
-    </form>
-
-    <div class="position-relative my-4">
-        <hr style="border-color: var(--border-color);">
-        <span class="position-absolute top-50 start-50 translate-middle px-3 text-secondary small" style="background: var(--card-bg);">OR JOIN EXISTING</span>
-    </div>
-
-    <form method="POST" action="{% url 'community:join_anon_chat' %}">
-        {% csrf_token %}
-        <div class="input-group mb-3">
-            <input type="text" name="session_code" class="form-control" placeholder="Enter Room Code (e.g. ZEN982)" required style="border-radius: 12px 0 0 12px; padding: 0.75rem 1rem; text-transform: uppercase;">
-            <button class="btn btn-outline-primary" type="submit" style="border-radius: 0 12px 12px 0; padding: 0.75rem 1.5rem; font-weight: 600;">Join</button>
+<!-- ================= STATE 1: ISSUE / TOPIC SELECTION LOBBY ================= -->
+<div class="card p-4 border-0 mb-4" style="background: var(--card-bg); border-radius: 24px; box-shadow: 0 4px 25px rgba(0,0,0,0.03);">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+        <div>
+            <h5 class="fw-bold text-primary mb-1">What are you going through right now?</h5>
+            <p class="text-secondary small mb-0">Select your current challenge to match with someone who truly relates.</p>
         </div>
+        <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#manualCodeBox" style="border-radius: 10px;">
+            <i class="bi bi-key me-1"></i> Join With Room Code
+        </button>
+    </div>
+
+    <!-- Manual Code Collapse -->
+    <div class="collapse mb-4" id="manualCodeBox">
+        <div class="p-3 rounded-3" style="background: var(--hover-bg); border: 1px solid var(--border-color);">
+            <form method="POST" action="{% url 'community:join_anon_chat' %}">
+                {% csrf_token %}
+                <label class="form-label small fw-semibold text-secondary">Join Friend's Private Room</label>
+                <div class="input-group">
+                    <input type="text" name="session_code" class="form-control" placeholder="Enter 6-char Room Code (e.g. ZEN982)" maxlength="6" required style="border-radius: 12px 0 0 12px; text-transform: uppercase;">
+                    <button class="btn btn-primary" type="submit" style="border-radius: 0 12px 12px 0; font-weight: 600;">Join Room</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Topic Selection Form -->
+    <form method="POST" action="{% url 'community:match_anon_chat' %}" id="matchForm">
+        {% csrf_token %}
+        <input type="hidden" name="topic" id="selectedTopicInput" value="Anxiety & Panic">
+
+        <div class="topic-selector-grid">
+            {% for t in anon_topics %}
+            <div class="topic-card-option {% if forloop.first %}selected{% endif %}" onclick="selectTopic('{{ t.id }}', this)">
+                <div class="topic-icon">{{ t.icon }}</div>
+                <div class="topic-label">{{ t.label }}</div>
+                <div class="topic-desc">{{ t.desc }}</div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 pt-3 border-top" style="border-color: var(--border-color) !important;">
+            <div class="d-flex align-items-center gap-2">
+                <span class="text-secondary small">Selected issue:</span>
+                <span class="badge bg-primary px-3 py-2" id="selectedTopicBadge" style="border-radius: 50px; font-size: 0.88rem;">
+                    🧠 Anxiety & Panic
+                </span>
+            </div>
+
+            <button type="submit" class="btn btn-primary px-4 py-3 d-flex align-items-center gap-2" style="border-radius: 14px; font-weight: 700; font-size: 1rem; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.35);">
+                <i class="bi bi-lightning-charge-fill"></i> Find My Peer Match
+            </button>
+        </div>
+    </form>
+</div>
+
+{% elif not active_session.participant2 %}
+<!-- ================= STATE 2: RADAR MATCH SEARCHING SCREEN ================= -->
+<div class="radar-search-card">
+    <div class="radar-pulse-wrap">
+        <div class="radar-wave"></div>
+        <div class="radar-wave"></div>
+        <div class="radar-wave"></div>
+        <div class="radar-center-icon">
+            <i class="bi bi-heart-pulse-fill"></i>
+        </div>
+    </div>
+
+    <h4 class="fw-bold text-primary mb-2">Searching for Your Peer Match</h4>
+    <p class="text-secondary mb-3" style="max-width: 480px; margin: 0 auto; line-height: 1.6;">
+        Looking for a fellow member facing: <br>
+        <span class="badge bg-primary px-3 py-2 mt-2" style="border-radius: 50px; font-size: 0.95rem;">
+            {{ active_session.topic|default:"General Support" }}
+        </span>
+    </p>
+
+    <div class="d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill mb-4" style="background: var(--hover-bg); border: 1px solid var(--border-color);">
+        <span class="spinner-grow spinner-grow-sm text-primary"></span>
+        <span class="small text-secondary" id="searchTimer">Searching... (0:05)</span>
+    </div>
+
+    <div class="p-3 rounded-4 mb-4" style="background: var(--hover-bg); max-width: 420px; margin: 0 auto; border: 1px dashed var(--border-color);">
+        <div class="small text-secondary mb-1">Your Private Room Code</div>
+        <div class="d-flex align-items-center justify-content-center gap-2">
+            <h5 class="fw-bold mb-0 text-primary letter-spacing-1">{{ active_session.session_code }}</h5>
+            <button class="btn btn-xs btn-outline-secondary py-1 px-2" style="border-radius: 6px;" onclick="copyRoomCode('{{ active_session.session_code }}')">
+                <i class="bi bi-clipboard"></i> Copy
+            </button>
+        </div>
+        <div class="small text-muted mt-1" style="font-size: 0.72rem;">You can also share this code with a friend to connect directly.</div>
+    </div>
+
+    <form method="POST" action="{% url 'community:end_anon_chat' active_session.session_code %}">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-outline-secondary" style="border-radius: 12px; padding: 0.6rem 1.4rem;">
+            <i class="bi bi-x-circle me-1"></i> Cancel Search & Change Issue
+        </button>
     </form>
 </div>
 
 {% else %}
-<!-- In-Session Chat Room -->
-<div class="active-chat-box">
+<!-- ================= STATE 3: MATCHED & ACTIVE 1-ON-1 CHAT ROOM ================= -->
+<div class="active-chat-box" id="activeChatBox">
+    <!-- Active Header -->
     <div class="active-chat-header">
-        <div>
-            <div class="fw-bold d-flex align-items-center gap-2">
-                <span class="badge bg-success bg-opacity-25 text-success p-1 px-2" style="border-radius: 6px;">Room Code: {{ active_session.session_code }}</span>
-                <span>Anonymous Support</span>
+        <div class="d-flex align-items-center gap-3">
+            <div style="width: 42px; height: 42px; border-radius: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                <i class="bi bi-incognito"></i>
             </div>
-            <div class="text-secondary small">
-                {% if active_session.participant2 %}Connected with Peer{% else %}Waiting for someone to join...{% endif %}
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <h6 class="fw-bold mb-0 text-primary">Matched Anonymous Peer</h6>
+                    <span class="badge bg-success bg-opacity-10 text-success small" style="font-size: 0.72rem;">
+                        <i class="bi bi-check-circle-fill me-1"></i> Connected
+                    </span>
+                </div>
+                <div class="small text-secondary">
+                    Facing: <strong>{{ active_session.topic|default:"Mutual Support" }}</strong> • Room: {{ active_session.session_code }}
+                </div>
             </div>
         </div>
-        <form method="POST" action="{% url 'community:end_anon_chat' active_session.session_code %}">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 10px;">
-                <i class="bi bi-box-arrow-right me-1"></i> End Session
-            </button>
-        </form>
+
+        <div class="d-flex align-items-center gap-2">
+            <form method="POST" action="{% url 'community:end_anon_chat' active_session.session_code %}">
+                {% csrf_token %}
+                <input type="hidden" name="purge" value="1">
+                <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 10px;" title="Leave and wipe chat logs">
+                    <i class="bi bi-shield-x me-1"></i> End & Wipe
+                </button>
+            </form>
+        </div>
     </div>
 
+    <!-- Match Celebration & Topic Banner -->
+    <div class="match-reveal-banner" id="matchRevealBanner">
+        <div class="d-flex align-items-center gap-2">
+            <span style="font-size: 1.5rem;">✨</span>
+            <div>
+                <div class="fw-bold text-success small">Mutual Match Found!</div>
+                <div class="text-secondary small">You both connected over: <strong>{{ active_session.topic }}</strong>. You are in a safe, judgement-free zone.</div>
+            </div>
+        </div>
+        <button class="btn btn-sm text-secondary" onclick="document.getElementById('matchRevealBanner').remove()"><i class="bi bi-x-lg"></i></button>
+    </div>
+
+    <!-- Chat Messages Stream -->
     <div class="active-chat-msgs" id="anonChatMsgs">
         {% for msg in messages %}
-        <div class="msg-bubble {% if msg.user == request.user %}mine{% else %}theirs{% endif %}">
-            <div style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 2px;">
-                {% if msg.user == request.user %}You{% else %}Peer{% endif %} • {{ msg.created_at|date:"g:i A" }}
+        <div class="anon-msg-row {% if msg.user == request.user %}mine{% else %}theirs{% endif %}" data-id="{{ msg.id }}">
+            <div class="anon-avatar">
+                <i class="bi bi-incognito"></i>
             </div>
-            {{ msg.message_text }}
+            <div>
+                <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 2px;" class="{% if msg.user == request.user %}text-end{% endif %}">
+                    {% if msg.user == request.user %}You{% else %}Peer{% endif %} • {{ msg.created_at|date:"g:i A" }}
+                </div>
+                <div class="anon-msg-bubble">
+                    {{ msg.message_text }}
+                </div>
+            </div>
         </div>
         {% empty %}
-        <div class="text-center py-5 text-secondary">
-            <i class="bi bi-chat-heart fs-1 mb-2 d-block text-muted"></i>
-            <div>Room is ready! Say hello to break the ice.</div>
+        <div class="text-center py-5 my-auto text-secondary" id="anonEmptyState">
+            <div style="font-size: 2.75rem;" class="mb-2">🌱</div>
+            <h6 class="fw-bold text-primary">Your Shared Space is Ready</h6>
+            <p class="small text-secondary mb-3">Both of you understand what this struggle feels like. Say hello to break the ice.</p>
         </div>
         {% endfor %}
     </div>
 
-    <div class="active-chat-footer">
+    <!-- Chat Input Footer -->
+    <div class="anon-chat-footer">
+        <!-- Topic Icebreakers -->
+        <div class="icebreaker-pills">
+            <span class="icebreaker-chip" onclick="insertIcebreaker('Hello friend, thank you for connecting with me today. 🌸')">
+                👋 Say Hello
+            </span>
+            <span class="icebreaker-chip" onclick="insertIcebreaker('I have been struggling with this lately. How are you holding up?')">
+                💭 How are you holding up?
+            </span>
+            <span class="icebreaker-chip" onclick="insertIcebreaker('Just taking it one step at a time. Glad to talk with someone who gets it.')">
+                🤍 Glad to talk with you
+            </span>
+            <span class="icebreaker-chip" onclick="insertAnonEmoji('🌸')">🌸</span>
+            <span class="icebreaker-chip" onclick="insertAnonEmoji('🙏')">🙏</span>
+            <span class="icebreaker-chip" onclick="insertAnonEmoji('❤️')">❤️</span>
+        </div>
+
         <form id="anonMsgForm" onsubmit="sendAnonMessage(event)">
             {% csrf_token %}
             <div class="input-group">
-                <input type="text" id="anonInput" class="form-control" placeholder="Type a supportive, kind message..." required style="border-radius: 14px 0 0 14px; padding: 0.75rem 1.25rem;">
-                <button class="btn btn-primary" type="submit" style="border-radius: 0 14px 14px 0; padding: 0.75rem 1.75rem;">
-                    <i class="bi bi-send-fill"></i>
+                <input 
+                    type="text" 
+                    id="anonInput" 
+                    class="form-control" 
+                    placeholder="Type your message here... (Enter to send)" 
+                    maxlength="1000"
+                    required 
+                    style="border-radius: 14px 0 0 14px; padding: 0.8rem 1.25rem;">
+                <button class="btn btn-primary" type="submit" id="anonSendBtn" style="border-radius: 0 14px 14px 0; padding: 0.8rem 1.5rem;">
+                    <i class="bi bi-send-fill" id="anonSendIcon"></i>
                 </button>
             </div>
         </form>
+    </div>
+
+    <!-- Ended State Overlay -->
+    <div class="ended-overlay d-none" id="endedOverlay">
+        <div style="font-size: 3.5rem;" class="mb-2">🛡️</div>
+        <h4 class="fw-bold mb-2">Private Session Concluded</h4>
+        <p class="text-white-50 mb-4" style="max-width: 480px;">
+            This conversation has concluded. To protect your privacy, no chat records are saved on your profile and all connections for this room are closed.
+        </p>
+        <div class="d-flex gap-2">
+            <a href="{% url 'community:anonymous_chat' %}" class="btn btn-primary" style="border-radius: 12px; padding: 0.6rem 1.4rem;">
+                <i class="bi bi-arrow-repeat me-1"></i> Match on Another Issue
+            </a>
+            <a href="{% url 'community:community' %}" class="btn btn-outline-light" style="border-radius: 12px; padding: 0.6rem 1.4rem;">
+                Return to Community
+            </a>
+        </div>
     </div>
 </div>
 {% endif %}
 {% endblock %}
 
 {% block extra_js %}
-{% if active_session %}
 <script>
+    // Topic Selection in Lobby
+    function selectTopic(topicId, card) {
+        document.querySelectorAll('.topic-card-option').forEach(el => el.classList.remove('selected'));
+        card.classList.add('selected');
+        document.getElementById('selectedTopicInput').value = topicId;
+
+        const badge = document.getElementById('selectedTopicBadge');
+        if (badge) {
+            badge.textContent = card.querySelector('.topic-label').textContent;
+        }
+    }
+
+    function copyRoomCode(code) {
+        navigator.clipboard.writeText(code).then(() => {
+            alert('Room code ' + code + ' copied to clipboard!');
+        }).catch(() => {
+            prompt('Copy this room code:', code);
+        });
+    }
+
+    {% if active_session %}
     const sessionCode = '{{ active_session.session_code }}';
+    let lastAnonMsgId = 0;
+    let anonPollTimer = null;
+    let peerConnected = {% if active_session.participant2 %}true{% else %}false{% endif %};
+    let secondsElapsed = 0;
+
+    // Searching timer for waiting screen
+    const searchTimerEl = document.getElementById('searchTimer');
+    if (searchTimerEl) {
+        setInterval(() => {
+            secondsElapsed++;
+            const mins = Math.floor(secondsElapsed / 60);
+            const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+            searchTimerEl.textContent = `Searching... (${mins}:${secs})`;
+        }, 1000);
+    }
+
+    // Initialize last message ID from rendered elements
+    document.querySelectorAll('.anon-msg-row[data-id]').forEach(el => {
+        const id = parseInt(el.getAttribute('data-id'), 10);
+        if (id > lastAnonMsgId) lastAnonMsgId = id;
+    });
+
+    const anonBox = document.getElementById('anonChatMsgs');
+    const anonInput = document.getElementById('anonInput');
+
+    function scrollAnonToBottom(smooth = false) {
+        if (anonBox) {
+            anonBox.scrollTo({
+                top: anonBox.scrollHeight,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+        }
+    }
+    scrollAnonToBottom(false);
+
+    function insertAnonEmoji(emoji) {
+        if (!anonInput) return;
+        anonInput.value += emoji;
+        anonInput.focus();
+    }
+
+    function insertIcebreaker(text) {
+        if (!anonInput) return;
+        anonInput.value = text;
+        anonInput.focus();
+    }
+
+    // Play a gentle match sound when peer arrives
+    function playMatchChime() {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, ctx.currentTime); // C5
+            osc.frequency.exponentialRampToValueAtTime(659.25, ctx.currentTime + 0.15); // E5
+            osc.frequency.exponentialRampToValueAtTime(783.99, ctx.currentTime + 0.3);  // G5
+
+            gain.gain.setValueAtTime(0.08, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+        } catch(e) {}
+    }
+
+    function appendAnonMessage(m, animate = true) {
+        const empty = document.getElementById('anonEmptyState');
+        if (empty) empty.remove();
+
+        if (document.querySelector(`.anon-msg-row[data-id="${m.id}"]`)) return;
+
+        const row = document.createElement('div');
+        row.className = `anon-msg-row ${m.is_mine ? 'mine' : 'theirs'}`;
+        row.setAttribute('data-id', m.id);
+
+        const divSafe = document.createElement('div');
+        divSafe.textContent = m.text;
+        const safeText = divSafe.innerHTML;
+
+        row.innerHTML = `
+            <div class="anon-avatar">
+                <i class="bi bi-incognito"></i>
+            </div>
+            <div>
+                <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 2px;" class="${m.is_mine ? 'text-end' : ''}">
+                    ${m.is_mine ? 'You' : 'Peer'} • ${m.time}
+                </div>
+                <div class="anon-msg-bubble">
+                    ${safeText}
+                </div>
+            </div>
+        `;
+
+        anonBox.appendChild(row);
+        scrollAnonToBottom(animate);
+    }
 
     function sendAnonMessage(e) {
         e.preventDefault();
-        const input = document.getElementById('anonInput');
-        const text = input.value.trim();
+        const text = anonInput.value.trim();
         if (!text) return;
-        input.value = '';
+
+        const btn = document.getElementById('anonSendBtn');
+        const icon = document.getElementById('anonSendIcon');
+        btn.disabled = true;
+        icon.className = 'spinner-border spinner-border-sm';
 
         fetch(`/community/anonymous-chat/${sessionCode}/send/`, {
             method: 'POST',
@@ -199,31 +747,83 @@
         })
         .then(r => r.json())
         .then(data => {
-            pollMessages();
-        });
-    }
-
-    function pollMessages() {
-        fetch(`/community/anonymous-chat/${sessionCode}/poll/`)
-        .then(r => r.json())
-        .then(data => {
-            if (data.messages) {
-                const box = document.getElementById('anonChatMsgs');
-                box.innerHTML = data.messages.map(m => `
-                    <div class="msg-bubble ${m.is_mine ? 'mine' : 'theirs'}">
-                        <div style="font-size: 0.7rem; opacity: 0.8; margin-bottom: 2px;">
-                            ${m.is_mine ? 'You' : 'Peer'} • ${m.time}
-                        </div>
-                        ${m.text}
-                    </div>
-                `).join('');
-                box.scrollTop = box.scrollHeight;
+            if (data.status === 'ok' && data.message) {
+                anonInput.value = '';
+                if (data.message.id > lastAnonMsgId) {
+                    lastAnonMsgId = data.message.id;
+                }
+                appendAnonMessage(data.message, true);
             }
+        })
+        .catch(err => console.error(err))
+        .finally(() => {
+            btn.disabled = false;
+            icon.className = 'bi bi-send-fill';
+            anonInput.focus();
         });
     }
 
-    // Poll every 3 seconds for peer messages
-    setInterval(pollMessages, 3000);
+    function pollAnonMessages() {
+        fetch(`/community/anonymous-chat/${sessionCode}/poll/?since=${lastAnonMsgId}`)
+        .then(r => {
+            if (!r.ok) {
+                if (r.status === 404 || r.status === 403) {
+                    clearInterval(anonPollTimer);
+                    showEndedOverlay();
+                }
+                return null;
+            }
+            return r.json();
+        })
+        .then(data => {
+            if (!data) return;
+
+            // Session ended handling
+            if (data.session_status === 'ended') {
+                clearInterval(anonPollTimer);
+                showEndedOverlay();
+                return;
+            }
+
+            // Detection when peer joins while on radar waiting screen
+            if (data.has_peer && !peerConnected) {
+                peerConnected = true;
+                playMatchChime();
+                // Reload page to transition smoothly from Radar Waiting state to In-Session Active state
+                window.location.reload();
+                return;
+            }
+
+            // Append incoming messages
+            if (data.messages && data.messages.length > 0) {
+                data.messages.forEach(m => {
+                    if (m.id > lastAnonMsgId) lastAnonMsgId = m.id;
+                    appendAnonMessage(m, true);
+                });
+            }
+        })
+        .catch(() => {});
+    }
+
+    function showEndedOverlay() {
+        const overlay = document.getElementById('endedOverlay');
+        if (overlay) overlay.classList.remove('d-none');
+        if (anonInput) anonInput.disabled = true;
+        const btn = document.getElementById('anonSendBtn');
+        if (btn) btn.disabled = true;
+    }
+
+    // Poll every 2.5 seconds
+    anonPollTimer = setInterval(pollAnonMessages, 2500);
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            clearInterval(anonPollTimer);
+        } else {
+            pollAnonMessages();
+            anonPollTimer = setInterval(pollAnonMessages, 2500);
+        }
+    });
+    {% endif %}
 </script>
-{% endif %}
 {% endblock %}

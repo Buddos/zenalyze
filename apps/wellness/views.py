@@ -1,11 +1,13 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.urls import reverse
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from datetime import timedelta
 import json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from .models import (
     MoodEntry, JournalEntry, Exercise, UserExerciseSession,
@@ -53,6 +55,13 @@ def dashboard_view(request):
     
     # Exercise sessions count
     exercise_count = UserExerciseSession.objects.filter(user=user).count()
+    continue_session = UserExerciseSession.objects.filter(
+        user=user,
+        completed=False,
+        progress_seconds__gt=0,
+        exercise__status='published',
+        exercise__is_active=True,
+    ).select_related('exercise').order_by('-started_at').first()
     
     # Recent activities
     recent_entries = all_moods[:5]
@@ -79,6 +88,7 @@ def dashboard_view(request):
         'avg_mood': avg_mood,
         'journal_count': journal_count,
         'exercise_count': exercise_count,
+        'continue_session': continue_session,
         'streak': user.streak_days,
         'recent_entries': recent_entries,
         'latest_journals': latest_journals,
@@ -181,8 +191,31 @@ def delete_journal_entry(request, entry_id):
 
 @login_required
 def exercises_view(request):
-    exercises = Exercise.objects.filter(is_active=True).order_by('-is_featured', 'display_order')
+    selected_cat = request.GET.get('cat', '').strip()
+    exercises = Exercise.objects.filter(is_active=True, status='published').select_related('media_asset')
+    if selected_cat == 'grounding':
+        exercises = exercises.filter(category__in=['grounding', 'mindfulness'])
+    elif selected_cat == 'yoga_flow':
+        exercises = exercises.filter(category__in=['yoga_flow', 'yoga'])
+    elif selected_cat:
+        exercises = exercises.filter(category=selected_cat)
+    exercises = exercises.order_by('-published_at', '-is_featured', 'display_order')
     user_sessions = UserExerciseSession.objects.filter(user=request.user)[:5]
+    continue_sessions = UserExerciseSession.objects.filter(
+        user=request.user,
+        exercise__in=exercises,
+        completed=False,
+        progress_seconds__gt=0,
+        exercise__status='published',
+        exercise__is_active=True,
+    ).select_related('exercise', 'exercise__media_asset').order_by('-started_at')
+    resume_id = request.GET.get('resume')
+    continue_session = continue_sessions.filter(id=resume_id).first() if resume_id else None
+    continue_session = continue_session or continue_sessions.first()
+    completed_sessions = UserExerciseSession.objects.filter(
+        user=request.user,
+        completed=True,
+    ).select_related('exercise')[:5]
     
     if request.method == 'POST':
         exercise_id = request.POST.get('exercise_id')
@@ -201,7 +234,52 @@ def exercises_view(request):
     return render(request, 'wellness/exercises.html', {
         'exercises': exercises,
         'sessions': user_sessions,
+        'continue_session': continue_session,
+        'history': completed_sessions,
+        'selected_cat': selected_cat,
         'completed_count': UserExerciseSession.objects.filter(user=request.user).count()
+    })
+
+
+@login_required
+@require_POST
+def start_exercise_session_api(request, exercise_id):
+    exercise = get_object_or_404(Exercise, id=exercise_id, status='published', is_active=True)
+    session = UserExerciseSession.objects.filter(
+        user=request.user,
+        exercise=exercise,
+        completed=False,
+    ).order_by('-started_at').first()
+    if session is None:
+        session = UserExerciseSession.objects.create(
+            user=request.user,
+            exercise=exercise,
+            completed=False,
+            started_at=timezone.now(),
+        )
+    return JsonResponse({'status': 'ok', 'session_id': session.id, 'progress_seconds': session.progress_seconds})
+
+
+@login_required
+@require_POST
+def update_exercise_session_api(request, session_id):
+    session = get_object_or_404(UserExerciseSession, id=session_id, user=request.user)
+    try:
+        payload = json.loads(request.body or '{}')
+        progress_seconds = max(0, int(float(payload.get('progress_seconds', 0))))
+    except (TypeError, ValueError, json.JSONDecodeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid progress value.'}, status=400)
+
+    media_duration = session.exercise.media_asset.duration_seconds if session.exercise.media_asset_id else None
+    expected_duration = media_duration or session.exercise.duration_minutes * 60
+    session.progress_seconds = min(progress_seconds, expected_duration)
+    session.duration_minutes = max(session.duration_minutes, session.progress_seconds // 60)
+    session.completed = session.progress_seconds >= max(1, int(expected_duration * 0.9))
+    session.save(update_fields=['progress_seconds', 'duration_minutes', 'completed'])
+    return JsonResponse({
+        'status': 'ok',
+        'completed': session.completed,
+        'progress_seconds': session.progress_seconds,
     })
 
 @login_required
@@ -294,35 +372,76 @@ def history_view(request):
 @login_required
 def financial_view(request):
     user = request.user
-    
-    if request.method == 'POST':
-        amount = Decimal(request.POST.get('amount', 0))
-        category = request.POST.get('category', 'Expense')
-        subcategory = request.POST.get('subcategory', '').strip()
-        description = request.POST.get('description', '').strip()
-        currency = request.POST.get('currency', 'KES')
-        
-        FinancialEntry.objects.create(
-            user=user,
-            amount=amount,
-            category=category,
-            subcategory=subcategory,
-            description=description,
-            currency=currency
-        )
-        messages.success(request, "Financial wellness entry recorded.")
-        return redirect('wellness:financial')
-        
-    entries = FinancialEntry.objects.filter(user=user)
-    total_income = sum(e.amount for e in entries if e.category == 'Income')
-    total_expenses = sum(e.amount for e in entries if e.category != 'Income')
-    net_savings = total_income - total_expenses
-    
+    supported_currencies = {
+        'KES': ('KSh', 'Kenyan shilling'),
+        'USD': ('$', 'US dollar'),
+        'EUR': ('€', 'Euro'),
+    }
+    if request.method == 'POST' and request.POST.get('action') == 'create_entry':
+        try:
+            amount = Decimal(request.POST.get('amount', '').strip())
+            if not amount.is_finite():
+                amount = None
+        except (InvalidOperation, ValueError):
+            amount = None
+        category = request.POST.get('category', '').strip()
+        allowed_categories = {
+            'Income', 'Housing', 'Food', 'Transportation', 'Health',
+            'Savings', 'Entertainment', 'Other',
+        }
+        currency = request.POST.get('currency', 'KES').upper()
+        if amount is None or amount <= 0 or amount > Decimal('9999999999.99') or amount.as_tuple().exponent < -2:
+            messages.error(request, 'Enter a valid amount greater than zero with up to two decimal places.')
+        elif category not in allowed_categories:
+            messages.error(request, 'Choose a valid transaction category.')
+        elif currency not in supported_currencies:
+            messages.error(request, 'Choose a supported currency.')
+        else:
+            FinancialEntry.objects.create(
+                user=user,
+                amount=amount,
+                category=category,
+                subcategory=request.POST.get('subcategory', '').strip(),
+                description=request.POST.get('description', '').strip(),
+                currency=currency,
+            )
+            messages.success(request, 'Transaction added to your planner.')
+            return redirect(f"{reverse('wellness:financial')}?currency={currency}")
+
+    display_currency = request.GET.get('currency', 'KES').upper()
+    if display_currency not in supported_currencies:
+        display_currency = 'KES'
+    display_symbol, currency_name = supported_currencies[display_currency]
+    entries = FinancialEntry.objects.filter(user=user, currency=display_currency)
+    total_income = sum((entry.amount for entry in entries if entry.category == 'Income'), Decimal('0'))
+    total_expenses = sum((entry.amount for entry in entries if entry.category != 'Income'), Decimal('0'))
+    spending_by_category = {}
+    for entry in entries:
+        if entry.category != 'Income':
+            spending_by_category[entry.category] = spending_by_category.get(entry.category, Decimal('0')) + entry.amount
+    sorted_spending = sorted(spending_by_category.items(), key=lambda item: item[1], reverse=True)
+    monthly_entries = entries.filter(created_at__year=timezone.now().year, created_at__month=timezone.now().month)
+    month_income = sum((entry.amount for entry in monthly_entries if entry.category == 'Income'), Decimal('0'))
+    month_expenses = sum((entry.amount for entry in monthly_entries if entry.category != 'Income'), Decimal('0'))
+    net_balance = total_income - total_expenses
+    savings_rate = (month_income - month_expenses) / month_income * 100 if month_income else Decimal('0')
+
     return render(request, 'wellness/financial.html', {
-        'entries': entries[:20],
+        'entries': entries[:30],
         'total_income': total_income,
-        'total_expenses': total_expenses,
-        'net_savings': net_savings,
+        'total_expense': total_expenses,
+        'net_balance': net_balance,
+        'display_currency': display_currency,
+        'display_symbol': display_symbol,
+        'currency_name': currency_name,
+        'month_income': month_income,
+        'month_expenses': month_expenses,
+        'savings_rate': savings_rate,
+        'savings_progress': min(max(float(savings_rate), 0), 100),
+        'month_label': timezone.localtime().strftime('%B %Y'),
+        'spending_categories': [name for name, _ in sorted_spending],
+        'spending_values': [float(value) for _, value in sorted_spending],
+        'spending_total': sum(spending_by_category.values(), Decimal('0')),
     })
 
 @login_required
@@ -331,6 +450,9 @@ def delete_financial_entry(request, entry_id):
         entry = get_object_or_404(FinancialEntry, id=entry_id, user=request.user)
         entry.delete()
         messages.success(request, "Financial transaction deleted.")
+        currency = request.POST.get('currency', '').upper()
+        if currency in {'KES', 'USD', 'EUR'}:
+            return redirect(f"{reverse('wellness:financial')}?currency={currency}")
     return redirect('wellness:financial')
 
 @login_required

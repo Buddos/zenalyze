@@ -13,33 +13,44 @@
     <div class="topbar-right">
         <!-- Theme Switcher -->
         <div class="dropdown">
-            <button class="topbar-btn" data-bs-toggle="dropdown" title="Change Theme" aria-expanded="false">
+            <button class="topbar-btn" id="themeToggleBtn" data-bs-toggle="dropdown" title="Change Theme (Instant)" aria-expanded="false">
                 {% if current_theme == 'dark' %}
-                    <i class="bi bi-moon-fill text-warning"></i>
+                    <i class="bi bi-moon-fill text-warning" id="themeBtnIcon"></i>
                 {% elif current_theme == 'auto' %}
-                    <i class="bi bi-circle-half text-info"></i>
+                    <i class="bi bi-circle-half text-info" id="themeBtnIcon"></i>
                 {% else %}
-                    <i class="bi bi-sun-fill text-warning"></i>
+                    <i class="bi bi-sun-fill text-warning" id="themeBtnIcon"></i>
                 {% endif %}
             </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <ul class="dropdown-menu dropdown-menu-end shadow-sm" id="themeDropdownMenu" style="min-width: 210px;">
                 <li><h6 class="dropdown-header">Appearance</h6></li>
                 <li>
-                    <a class="dropdown-item d-flex align-items-center gap-2 {% if current_theme == 'light' %}active{% endif %}" 
-                       href="#" onclick="changeTheme('light'); return false;">
-                        <i class="bi bi-sun"></i> Light Mode
+                    <a class="dropdown-item d-flex align-items-center justify-content-between gap-2 {% if current_theme == 'light' %}active{% endif %}" 
+                       href="#" onclick="changeTheme('light'); return false;" data-theme-val="light">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-sun text-warning"></i> Light Mode</span>
+                        <i class="bi bi-check2 theme-check-icon text-primary fw-bold {% if current_theme != 'light' %}d-none{% endif %}"></i>
                     </a>
                 </li>
                 <li>
-                    <a class="dropdown-item d-flex align-items-center gap-2 {% if current_theme == 'dark' %}active{% endif %}" 
-                       href="#" onclick="changeTheme('dark'); return false;">
-                        <i class="bi bi-moon"></i> Dark Mode
+                    <a class="dropdown-item d-flex align-items-center justify-content-between gap-2 {% if current_theme == 'dark' %}active{% endif %}" 
+                       href="#" onclick="changeTheme('dark'); return false;" data-theme-val="dark">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-moon text-info"></i> Dark Mode</span>
+                        <i class="bi bi-check2 theme-check-icon text-primary fw-bold {% if current_theme != 'dark' %}d-none{% endif %}"></i>
                     </a>
                 </li>
                 <li>
-                    <a class="dropdown-item d-flex align-items-center gap-2 {% if current_theme == 'auto' %}active{% endif %}" 
-                       href="#" onclick="changeTheme('auto'); return false;">
-                        <i class="bi bi-circle-half"></i> System Auto
+                    <a class="dropdown-item d-flex align-items-center justify-content-between gap-2 {% if current_theme == 'auto' %}active{% endif %}" 
+                       href="#" onclick="changeTheme('auto'); return false;" data-theme-val="auto">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-circle-half text-secondary"></i> System Auto</span>
+                        <i class="bi bi-check2 theme-check-icon text-primary fw-bold {% if current_theme != 'auto' %}d-none{% endif %}"></i>
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider my-1"></li>
+                <li>
+                    <a class="dropdown-item d-flex align-items-center justify-content-between gap-2 text-primary small py-1" 
+                       href="#" onclick="toggleTheme(event); return false;">
+                        <span class="d-flex align-items-center gap-2"><i class="bi bi-arrow-repeat"></i> Toggle Light/Dark</span>
+                        <span class="badge bg-primary bg-opacity-10 text-primary rounded-pill" style="font-size: 0.65rem;">Instant</span>
                     </a>
                 </li>
             </ul>
@@ -106,6 +117,7 @@
                     </div>
                 </li>
                 <li><a class="dropdown-item" href="{% url 'accounts:profile' %}"><i class="bi bi-person me-2"></i>My Profile</a></li>
+                <li><a class="dropdown-item" href="{% url 'wellness:history' %}"><i class="bi bi-clock-history me-2"></i>Full History</a></li>
                 <li><a class="dropdown-item" href="{% url 'accounts:settings' %}"><i class="bi bi-gear me-2"></i>Settings</a></li>
                 {% if user.is_admin_user %}
                 <li><a class="dropdown-item text-primary" href="{% url 'administration:dashboard' %}"><i class="bi bi-shield-lock me-2"></i>Admin Console</a></li>

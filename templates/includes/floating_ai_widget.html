@@ -20,6 +20,9 @@
         z-index: 1060;
         transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
+    .floating-zen-ai-trigger.financial-page-offset {
+        right: min(100px, calc(100vw - 190px));
+    }
     .floating-zen-ai-trigger:hover {
         transform: translateY(-3px) scale(1.03);
         box-shadow: 0 12px 30px rgba(102, 126, 234, 0.55);
@@ -27,7 +30,7 @@
     }
     .floating-zen-ai-trigger .ai-icon-pulse {
         width: 10px;
-        height: 10px;
+        height: 5px;
         border-radius: 50%;
         background: #10b981;
         box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7);
@@ -87,7 +90,7 @@
     }
 </style>
 
-<button class="floating-zen-ai-trigger" id="floatingAiBtn" onclick="toggleFloatingAi()" title="Chat with Zen AI Assistant">
+<button class="floating-zen-ai-trigger{% if request.resolver_match.url_name == 'financial' %} financial-page-offset{% endif %}" id="floatingAiBtn" onclick="toggleFloatingAi()" title="Chat with Zen AI Assistant">
     <i class="bi bi-robot fs-5"></i>
     <span>Ask Zen AI</span>
     <span class="ai-icon-pulse"></span>

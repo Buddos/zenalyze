@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import (
     CommunityPost,
+    MediaAsset,
     PostComment,
     PostLike,
     CommunityMessage,
@@ -12,9 +13,22 @@ from .models import (
 
 @admin.register(CommunityPost)
 class CommunityPostAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'category', 'status', 'is_pinned', 'likes_count', 'comments_count', 'created_at')
-    list_filter = ('status', 'category', 'is_pinned', 'is_anonymous', 'created_at')
+    list_display = ('title', 'user', 'category', 'status', 'moderation_status', 'is_pinned', 'likes_count', 'comments_count', 'created_at')
+    list_filter = ('status', 'moderation_status', 'category', 'is_pinned', 'is_anonymous', 'created_at')
     search_fields = ('title', 'content', 'user__username')
+
+
+@admin.register(MediaAsset)
+class MediaAssetAdmin(admin.ModelAdmin):
+    list_display = ('id', 'asset_type', 'file', 'processing_status', 'uploaded_by', 'created_at')
+    list_filter = ('asset_type', 'processing_status', 'created_at')
+    search_fields = ('file', 'uploaded_by__username')
+    readonly_fields = ('created_at',)
+
+    def save_model(self, request, obj, form, change):
+        if not obj.uploaded_by_id:
+            obj.uploaded_by = request.user
+        super().save_model(request, obj, form, change)
 
 
 @admin.register(PostComment)

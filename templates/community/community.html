@@ -1,25 +1,131 @@
 {% extends "base_dashboard.html" %}
 
-{% block title %}Community Support Forum - Zenalyze{% endblock %}
-{% block page_title %}Community Forum{% endblock %}
-{% block page_subtitle %}A safe, compassionate space to share, listen, and support one another{% endblock %}
+{% block title %}Community Hub - Zenalyze{% endblock %}
+{% block topbar_title %}Zenalyze Community{% endblock %}
+{% block topbar_subtitle %}A safe, compassionate space to share, listen, and support one another{% endblock %}
 
 {% block extra_css %}
 <style>
-    .community-header-bar {
+    /* Hero Banner */
+    .community-hero {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.12));
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        padding: 2.25rem 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        margin-bottom: 2rem;
         flex-wrap: wrap;
-        gap: 1rem;
+        gap: 1.5rem;
     }
-    .category-pills {
+
+    .community-hero-content {
+        max-width: 600px;
+    }
+
+    .community-hero-title {
+        font-size: 1.75rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -0.02em;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .community-hero-desc {
+        color: var(--text-secondary);
+        font-size: 0.96rem;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    .hero-stat-badges {
+        display: flex;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+    }
+
+    .hero-stat-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0.35rem 0.85rem;
+        border-radius: 50px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+
+    .hero-stat-pill .live-indicator-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: #10b981;
+        box-shadow: 0 0 0 rgba(16, 185, 129, 0.4);
+        animation: pulseLiveHub 2s infinite;
+    }
+
+    @keyframes pulseLiveHub {
+        0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+        70% { box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+
+    /* Primary Navigation Switcher (Forum vs Community Chat) */
+    .community-nav-tabs {
         display: flex;
         gap: 0.5rem;
-        flex-wrap: wrap;
-        margin-bottom: 1.5rem;
+        background: var(--hover-bg);
+        padding: 0.4rem;
+        border-radius: 16px;
+        margin-bottom: 1.75rem;
+        width: fit-content;
+        border: 1px solid var(--border-color);
     }
+
+    .community-tab-btn {
+        padding: 0.6rem 1.4rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.92rem;
+        color: var(--text-secondary);
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        text-decoration: none;
+    }
+
+    .community-tab-btn:hover {
+        color: var(--text-primary);
+    }
+
+    .community-tab-btn.active {
+        background: var(--card-bg);
+        color: #667eea;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+    }
+
+    /* Category Filter Pills */
+    .category-scroll-wrap {
+        display: flex;
+        gap: 0.5rem;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        margin-bottom: 1.5rem;
+        scrollbar-width: thin;
+    }
+
     .cat-btn {
         padding: 0.45rem 1rem;
         border-radius: 50px;
@@ -29,30 +135,57 @@
         font-size: 0.85rem;
         font-weight: 500;
         text-decoration: none;
+        white-space: nowrap;
         transition: all 0.2s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
     }
+
     .cat-btn:hover, .cat-btn.active {
         background: #667eea;
         color: white;
         border-color: #667eea;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.25);
     }
+
+    /* Layout Grids */
+    .forum-grid {
+        display: grid;
+        grid-template-columns: 1fr 340px;
+        gap: 1.75rem;
+        align-items: start;
+    }
+
+    @media (max-width: 992px) {
+        .forum-grid {
+            grid-template-columns: 1fr;
+        }
+        .forum-sidebar {
+            order: 2;
+        }
+    }
+
+    /* Post Card */
     .post-card {
         background: var(--card-bg);
         border: 1px solid var(--border-color);
         border-radius: 20px;
         padding: 1.75rem;
         margin-bottom: 1.5rem;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.02);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
         transition: transform 0.2s, box-shadow 0.2s;
     }
+
     .post-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
     }
+
     .post-author-avatar {
         width: 44px;
         height: 44px;
-        border-radius: 12px;
+        border-radius: 14px;
         background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
         display: flex;
@@ -61,25 +194,31 @@
         font-weight: 700;
         font-size: 1.1rem;
         overflow: hidden;
+        flex-shrink: 0;
     }
+
     .post-author-avatar img {
         width: 100%;
         height: 100%;
         object-fit: cover;
     }
+
     .post-title {
         font-size: 1.25rem;
         font-weight: 700;
         color: var(--text-primary);
-        margin: 0.75rem 0 0.5rem 0;
+        margin: 0.85rem 0 0.5rem 0;
+        line-height: 1.4;
     }
+
     .post-content {
         color: var(--text-secondary);
         font-size: 0.95rem;
-        line-height: 1.6;
+        line-height: 1.65;
         margin-bottom: 1.25rem;
         white-space: pre-line;
     }
+
     .post-action-btn {
         background: transparent;
         border: none;
@@ -88,246 +227,523 @@
         font-weight: 600;
         display: inline-flex;
         align-items: center;
-        gap: 0.4rem;
-        padding: 0.4rem 0.8rem;
-        border-radius: 8px;
+        gap: 0.45rem;
+        padding: 0.45rem 0.85rem;
+        border-radius: 10px;
         transition: all 0.2s;
         cursor: pointer;
     }
+
     .post-action-btn:hover {
         background: var(--hover-bg);
         color: #667eea;
     }
+
     .post-action-btn.liked {
         color: #ef4444;
     }
+
     .comments-section {
         background: var(--hover-bg);
-        border-radius: 14px;
+        border-radius: 16px;
         padding: 1.25rem;
-        margin-top: 1rem;
+        margin-top: 1.25rem;
         display: none;
     }
+
     .comment-item {
         padding: 0.75rem 0;
         border-bottom: 1px solid var(--border-color);
     }
+
     .comment-item:last-child {
         border-bottom: none;
     }
 
-    /* Floating Chat Drawer */
-    .floating-chat-trigger {
-        position: fixed;
-        bottom: 2rem;
-        right: 2rem;
-        width: 60px;
-        height: 60px;
+    /* Sidebar Cards */
+    .sidebar-widget {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.02);
+    }
+
+    /* Integrated Community Chat Tab Styles */
+    .embedded-chat-container {
+        display: grid;
+        grid-template-columns: 1fr 280px;
+        gap: 1.25rem;
+        height: 650px;
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.04);
+    }
+
+    @media (max-width: 992px) {
+        .embedded-chat-container {
+            grid-template-columns: 1fr;
+            height: 600px;
+        }
+        .embedded-chat-sidebar {
+            display: none;
+        }
+    }
+
+    .embedded-chat-main {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+    }
+
+    .embedded-chat-header {
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--card-bg);
+    }
+
+    .embedded-chat-stream {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.9rem;
+        background: var(--bg-primary);
+        scroll-behavior: smooth;
+    }
+
+    .hub-msg-row {
+        display: flex;
+        gap: 0.65rem;
+        max-width: 82%;
+        align-items: flex-end;
+    }
+
+    .hub-msg-row.mine {
+        align-self: flex-end;
+        flex-direction: row-reverse;
+    }
+
+    .hub-msg-row.theirs {
+        align-self: flex-start;
+    }
+
+    .hub-msg-avatar {
+        width: 32px;
+        height: 32px;
         border-radius: 50%;
         background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.5rem;
-        box-shadow: 0 10px 25px rgba(102,126,234,0.4);
-        cursor: pointer;
-        z-index: 1050;
-        transition: transform 0.3s cubic-bezier(0.175,0.885,0.32,1.275);
-    }
-    .floating-chat-trigger:hover {
-        transform: scale(1.08);
-    }
-    .chat-drawer {
-        position: fixed;
-        bottom: 6.5rem;
-        right: 2rem;
-        width: 380px;
-        height: 520px;
-        background: var(--card-bg);
-        border: 1px solid var(--border-color);
-        border-radius: 20px;
-        box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-        display: none;
-        flex-direction: column;
-        z-index: 1050;
+        font-size: 0.78rem;
+        font-weight: 700;
+        flex-shrink: 0;
         overflow: hidden;
     }
-    .chat-drawer.open {
-        display: flex;
-    }
-    .chat-drawer-header {
-        padding: 1rem 1.25rem;
-        background: linear-gradient(135deg, #667eea, #764ba2);
-        color: white;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-    .chat-messages-wrap {
-        flex: 1;
-        padding: 1rem;
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-    .chat-bubble {
-        max-width: 80%;
-        padding: 0.6rem 0.9rem;
-        border-radius: 14px;
-        font-size: 0.85rem;
+
+    .hub-msg-bubble {
+        padding: 0.65rem 1rem;
+        border-radius: 16px;
+        font-size: 0.9rem;
+        line-height: 1.45;
         word-break: break-word;
     }
-    .chat-bubble.mine {
-        align-self: flex-end;
-        background: #667eea;
+
+    .hub-msg-row.mine .hub-msg-bubble {
+        background: linear-gradient(135deg, #667eea, #764ba2);
         color: white;
         border-bottom-right-radius: 4px;
     }
-    .chat-bubble.theirs {
-        align-self: flex-start;
-        background: var(--hover-bg);
+
+    .hub-msg-row.theirs .hub-msg-bubble {
+        background: var(--card-bg);
         color: var(--text-primary);
+        border: 1px solid var(--border-color);
         border-bottom-left-radius: 4px;
     }
-    .chat-input-bar {
-        padding: 0.75rem;
+
+    .embedded-chat-footer {
+        padding: 0.85rem 1.25rem;
         border-top: 1px solid var(--border-color);
-        display: flex;
-        gap: 0.5rem;
-        align-items: center;
+        background: var(--card-bg);
+    }
+
+    .embedded-chat-sidebar {
+        border-left: 1px solid var(--border-color);
+        padding: 1.25rem;
+        background: var(--card-bg);
+        overflow-y: auto;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="community-header-bar">
-    <div>
-        <h2 class="fw-bold mb-1"><i class="bi bi-chat-quote-fill text-primary me-2"></i> Voices of Zenalyze</h2>
-        <p class="text-secondary mb-0">Join discussions, share your wellness milestones, or post anonymously.</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="{% url 'community:anonymous_chat' %}" class="btn btn-outline-secondary" style="border-radius: 12px; padding: 0.6rem 1.2rem;">
-            <i class="bi bi-incognito me-1"></i> Peer Chat
-        </a>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPostModal" style="border-radius: 12px; padding: 0.6rem 1.4rem;">
-            <i class="bi bi-plus-lg me-1"></i> Share Your Story
-        </button>
-    </div>
-</div>
-
-<!-- Category filter tabs -->
-<div class="category-pills">
-    <a href="{% url 'community:community' %}" class="cat-btn {% if not current_category or current_category == 'all' %}active{% endif %}">
-        All Discussions
-    </a>
-    <a href="{% url 'community:community' %}?category=General" class="cat-btn {% if current_category == 'General' %}active{% endif %}">
-        General
-    </a>
-    <a href="{% url 'community:community' %}?category=Mental Health" class="cat-btn {% if current_category == 'Mental Health' %}active{% endif %}">
-        Mental Health
-    </a>
-    <a href="{% url 'community:community' %}?category=Mindfulness" class="cat-btn {% if current_category == 'Mindfulness' %}active{% endif %}">
-        Mindfulness
-    </a>
-    <a href="{% url 'community:community' %}?category=Anxiety & Stress" class="cat-btn {% if current_category == 'Anxiety & Stress' %}active{% endif %}">
-        Anxiety & Stress
-    </a>
-    <a href="{% url 'community:community' %}?category=Gratitude" class="cat-btn {% if current_category == 'Gratitude' %}active{% endif %}">
-        Gratitude
-    </a>
-</div>
-
-<!-- Posts Feed -->
-<div class="posts-feed">
-    {% for post in posts %}
-    <div class="post-card" id="post-{{ post.id }}">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="post-author-avatar">
-                    {% if post.is_anonymous %}
-                    <i class="bi bi-incognito"></i>
-                    {% elif post.user.avatar %}
-                    <img src="{{ post.user.avatar.url }}" alt="avatar">
-                    {% else %}
-                    {{ post.user.username|slice:":1"|upper }}
-                    {% endif %}
-                </div>
-                <div>
-                    <div class="fw-bold text-primary">
-                        {% if post.is_anonymous %}Anonymous Friend{% else %}{{ post.user.display_title }}{% endif %}
-                    </div>
-                    <div class="text-secondary small">{{ post.created_at|timesince }} ago</div>
-                </div>
-            </div>
-            <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style="border-radius: 50px;">
-                {{ post.category }}
+<!-- Welcoming Hero Banner -->
+<div class="community-hero">
+    <div class="community-hero-content">
+        <h2 class="community-hero-title">
+            <i class="bi bi-chat-quote-fill text-primary"></i> Voices of Zenalyze
+        </h2>
+        <p class="community-hero-desc">
+            A compassionate, judgement-free sanctuary to connect, share wisdom, and uplift each other. Whether you are reflecting on personal growth or need a friendly ear, you belong here.
+        </p>
+        <div class="hero-stat-badges">
+            <span class="hero-stat-pill">
+                <i class="bi bi-card-text text-primary"></i> {{ posts|length }} Stories Shared
+            </span>
+            <span class="hero-stat-pill">
+                <span class="live-indicator-dot"></span> Live Peer Community Active
+            </span>
+            <span class="hero-stat-pill">
+                <i class="bi bi-shield-check text-success"></i> Safe Space Moderation
             </span>
         </div>
+    </div>
 
-        <h4 class="post-title">{{ post.title }}</h4>
-        <div class="post-content">{{ post.content }}</div>
+    <!-- Quick Action CTAs -->
+    <div class="d-flex flex-column gap-2">
+        <button class="btn btn-primary d-flex align-items-center justify-content-center gap-2" data-bs-toggle="modal" data-bs-target="#newPostModal" style="border-radius: 14px; padding: 0.75rem 1.5rem; font-weight: 600;">
+            <i class="bi bi-plus-circle-fill"></i> Share Your Story
+        </button>
+        <a href="{% url 'community:anonymous_chat' %}" class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2" style="border-radius: 14px; padding: 0.65rem 1.5rem; font-weight: 600;">
+            <i class="bi bi-incognito text-primary"></i> 1-on-1 Anonymous Chat
+        </a>
+    </div>
+</div>
 
-        <div class="d-flex align-items-center gap-3 pt-2 border-top" style="border-color: var(--border-color) !important;">
-            <button class="post-action-btn {% if post.id in user_liked_post_ids %}liked{% endif %}" onclick="toggleLikePost({{ post.id }}, this)">
-                <i class="bi bi-heart-fill"></i> <span class="like-count">{{ post.likes_count }}</span>
-            </button>
-            <button class="post-action-btn" onclick="toggleComments({{ post.id }})">
-                <i class="bi bi-chat-text"></i> {{ post.comments.count }} Comments
-            </button>
+<!-- Primary Navigation Tabs inside Community -->
+<div class="community-nav-tabs">
+    <button class="community-tab-btn {% if active_tab != 'chat' %}active{% endif %}" id="tabBtnDiscussions" onclick="switchCommunityTab('discussions')">
+        <i class="bi bi-chat-left-text-fill"></i> Discussions & Stories
+    </button>
+    <button class="community-tab-btn {% if active_tab == 'chat' %}active{% endif %}" id="tabBtnChat" onclick="switchCommunityTab('chat')">
+        <i class="bi bi-chat-dots-fill text-success"></i> Community Chat
+        <span class="badge bg-success bg-opacity-10 text-success ms-1 small" style="font-size: 0.72rem;">Live</span>
+    </button>
+</div>
+
+<!-- ================= SECTION 1: DISCUSSIONS TAB ================= -->
+<div id="sectionDiscussions" class="{% if active_tab == 'chat' %}d-none{% endif %}">
+    <!-- Category Filter Pills -->
+    <div class="category-scroll-wrap">
+        <a href="{% url 'community:community' %}" class="cat-btn {% if not current_category or current_category == 'all' %}active{% endif %}">
+            <i class="bi bi-grid-fill"></i> All Discussions
+        </a>
+        <a href="{% url 'community:community' %}?category=General" class="cat-btn {% if current_category == 'General' %}active{% endif %}">
+            <i class="bi bi-chat-heart"></i> General
+        </a>
+        <a href="{% url 'community:community' %}?category=Mental Health" class="cat-btn {% if current_category == 'Mental Health' %}active{% endif %}">
+            <i class="bi bi-heart-pulse"></i> Mental Health
+        </a>
+        <a href="{% url 'community:community' %}?category=Mindfulness" class="cat-btn {% if current_category == 'Mindfulness' %}active{% endif %}">
+            <i class="bi bi-flower1"></i> Mindfulness
+        </a>
+        <a href="{% url 'community:community' %}?category=Anxiety & Stress" class="cat-btn {% if current_category == 'Anxiety & Stress' %}active{% endif %}">
+            <i class="bi bi-cloud-rain"></i> Anxiety & Stress
+        </a>
+        <a href="{% url 'community:community' %}?category=Gratitude" class="cat-btn {% if current_category == 'Gratitude' %}active{% endif %}">
+            <i class="bi bi-stars"></i> Gratitude & Wins
+        </a>
+    </div>
+
+    <!-- Forum Layout (Posts + Sidebar) -->
+    <div class="forum-grid">
+        <!-- Posts Feed Column -->
+        <div class="posts-feed">
+            {% for post in posts %}
+            <div class="post-card" id="post-{{ post.id }}">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="post-author-avatar">
+                            {% if post.is_anonymous %}
+                            <i class="bi bi-incognito"></i>
+                            {% elif post.user.avatar_display_url %}
+                            <img src="{{ post.user.avatar_display_url }}" alt="avatar">
+                            {% else %}
+                            {{ post.user.username|slice:":1"|upper }}
+                            {% endif %}
+                        </div>
+                        <div>
+                            <div class="fw-bold text-primary">
+                                {% if post.is_anonymous %}
+                                Anonymous Friend <span class="badge bg-secondary bg-opacity-10 text-secondary ms-1 small" style="font-size: 0.7rem;">Private</span>
+                                {% else %}
+                                {{ post.user.display_title|default:post.user.username }}
+                                {% endif %}
+                            </div>
+                            <div class="text-secondary small">{{ post.created_at|timesince }} ago</div>
+                        </div>
+                    </div>
+                    <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2" style="border-radius: 50px; font-weight: 600;">
+                        {{ post.category }}
+                    </span>
+                </div>
+
+                <h4 class="post-title">{{ post.title|default:"Shared media" }}</h4>
+                {% if post.content %}<div class="post-content">{{ post.content }}</div>{% endif %}
+                {% for item in post.media_items.all %}
+                    {% if item.media_asset.asset_type == 'image' %}
+                    <a href="{{ item.media_asset.file.url }}" target="_blank" rel="noopener noreferrer" class="d-inline-block mt-3">
+                        <img src="{% if item.media_asset.thumbnail %}{{ item.media_asset.thumbnail.url }}{% else %}{{ item.media_asset.file.url }}{% endif %}" alt="Community post attachment" class="w-100 rounded-3" style="max-height: 360px; object-fit: cover;">
+                    </a>
+                    {% elif item.media_asset.asset_type == 'video' %}
+                    <video class="w-100 rounded-3 mt-3" controls preload="none" {% if item.media_asset.thumbnail %}poster="{{ item.media_asset.thumbnail.url }}"{% endif %}>
+                        <source src="{{ item.media_asset.file.url }}">
+                        Your browser does not support the video element.
+                    </video>
+                    {% endif %}
+                {% endfor %}
+
+                <div class="d-flex align-items-center gap-3 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                    <button class="post-action-btn {% if post.id in user_liked_post_ids %}liked{% endif %}" onclick="toggleLikePost({{ post.id }}, this)">
+                        <i class="bi bi-heart-fill"></i> <span class="like-count">{{ post.likes_count }}</span>
+                    </button>
+                    <button class="post-action-btn" onclick="toggleComments({{ post.id }})">
+                        <i class="bi bi-chat-text"></i> {{ post.comments.count }} Comments
+                    </button>
+                    {% if post.user_id != request.user.id %}
+                    <form method="POST" action="{% url 'community:report_post' post.id %}" class="ms-auto">
+                        {% csrf_token %}
+                        <button type="submit" class="post-action-btn" title="Report this post">
+                            <i class="bi bi-flag"></i> Report
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+
+                <!-- Comments section -->
+                <div class="comments-section" id="comments-{{ post.id }}">
+                    <div class="comments-list mb-3">
+                        {% for comment in post.comments.all %}
+                        <div class="comment-item">
+                            <div class="d-flex justify-content-between mb-1">
+                                <span class="fw-bold small text-primary">
+                                    {% if comment.is_anonymous %}Anonymous Peer{% else %}{{ comment.user.display_title|default:comment.user.username }}{% endif %}
+                                </span>
+                                <span class="text-secondary small">{{ comment.created_at|timesince }} ago</span>
+                            </div>
+                            <div class="small text-secondary">{{ comment.content }}</div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-2 text-secondary small">Be the first to share an encouraging reply!</div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Add comment form -->
+                    <form method="POST" action="{% url 'community:add_comment' post.id %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a supportive reply..." required style="border-radius: 10px 0 0 10px;">
+                            <button class="btn btn-sm btn-primary" type="submit" style="border-radius: 0 10px 10px 0;">Reply</button>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="is_anonymous" id="anonComment{{ post.id }}">
+                            <label class="form-check-label small text-secondary" for="anonComment{{ post.id }}">Reply anonymously</label>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-5 text-secondary post-card">
+                <i class="bi bi-chat-square-dots fs-1 mb-3 d-block text-muted"></i>
+                <h5 class="fw-bold text-primary">No discussions in this topic yet</h5>
+                <p class="small text-secondary mb-3">You can be the first to break the ice! Share a small victory or reflection.</p>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#newPostModal" style="border-radius: 12px;">
+                    Start a Discussion
+                </button>
+            </div>
+            {% endfor %}
         </div>
 
-        <!-- Comments section -->
-        <div class="comments-section" id="comments-{{ post.id }}">
-            <div class="comments-list mb-3">
-                {% for comment in post.comments.all %}
-                <div class="comment-item">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="fw-bold small text-primary">
-                            {% if comment.is_anonymous %}Anonymous{% else %}{{ comment.user.display_title }}{% endif %}
-                        </span>
-                        <span class="text-secondary small">{{ comment.created_at|timesince }} ago</span>
+        <!-- Forum Sidebar Column -->
+        <div class="forum-sidebar">
+            <!-- Community Chat Quick Banner -->
+            <div class="sidebar-widget" style="background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.08)); border-color: rgba(102,126,234,0.2);">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="live-indicator-dot"></span>
+                    <h6 class="fw-bold mb-0 text-primary">Community Chat</h6>
+                </div>
+                <p class="small text-secondary mb-3">
+                    Looking for instant conversation? Join peers chatting live right now.
+                </p>
+                <button class="btn btn-sm btn-primary w-100" onclick="switchCommunityTab('chat')" style="border-radius: 10px;">
+                    Open Community Chat
+                </button>
+            </div>
+
+            <!-- Daily Mindfulness Thought -->
+            <div class="sidebar-widget">
+                <h6 class="fw-bold mb-2 text-primary d-flex align-items-center gap-2">
+                    <i class="bi bi-sun-fill text-warning"></i> Today's Gentle Reminder
+                </h6>
+                <p class="small text-secondary mb-0" style="font-style: italic; line-height: 1.6;">
+                    "You do not have to have everything figured out to move forward. Be kind to yourself today; healing and growth are step-by-step journeys."
+                </p>
+            </div>
+
+            <!-- Community Guidelines -->
+            <div class="sidebar-widget">
+                <h6 class="fw-bold mb-3 text-primary d-flex align-items-center gap-2">
+                    <i class="bi bi-shield-check text-success"></i> Community Values
+                </h6>
+                <div class="d-flex flex-column gap-2 small text-secondary">
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-check2-circle text-primary mt-1"></i>
+                        <span><strong>Compassion First:</strong> Uplift, listen actively, and respect diverse backgrounds.</span>
                     </div>
-                    <div class="small text-secondary">{{ comment.content }}</div>
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-check2-circle text-primary mt-1"></i>
+                        <span><strong>Respect Privacy:</strong> Never pressure peers for personal identity or sensitive data.</span>
+                    </div>
+                    <div class="d-flex align-items-start gap-2">
+                        <i class="bi bi-check2-circle text-primary mt-1"></i>
+                        <span><strong>No Judgement:</strong> Share thoughts safely without fear of criticism.</span>
+                    </div>
+                </div>
+                <div class="mt-3 pt-3 border-top" style="border-color: var(--border-color) !important;">
+                    <a href="{% url 'wellness:crisis_help' %}" class="text-danger small fw-semibold text-decoration-none d-flex align-items-center gap-1">
+                        <i class="bi bi-telephone-fill"></i> Need crisis support? Tap here
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================= SECTION 2: EMBEDDED COMMUNITY CHAT TAB ================= -->
+<div id="sectionChat" class="{% if active_tab != 'chat' %}d-none{% endif %}">
+    <div class="embedded-chat-container">
+        <!-- Main Chat Area -->
+        <div class="embedded-chat-main">
+            <!-- Header -->
+            <div class="embedded-chat-header">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width: 38px; height: 38px; border-radius: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.15rem;">
+                        <i class="bi bi-chat-dots-fill"></i>
+                    </div>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="fw-bold mb-0 text-primary">Community Chat Room</h6>
+                            <span class="badge bg-success bg-opacity-10 text-success small" style="font-size: 0.72rem;">Live</span>
+                        </div>
+                        <small class="text-secondary" style="font-size: 0.78rem;">Open discussion • Speak with kindness</small>
+                    </div>
+                </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleEmbeddedSound()" id="embeddedSoundBtn" title="Toggle Sound" style="border-radius: 10px;">
+                        <i class="bi bi-volume-up-fill" id="embeddedSoundIcon"></i>
+                    </button>
+                    <a href="{% url 'community:community_chat' %}" class="btn btn-sm btn-outline-primary" style="border-radius: 10px;" title="Open in dedicated full page">
+                        <i class="bi bi-arrows-fullscreen me-1"></i> Full View
+                    </a>
+                </div>
+            </div>
+
+            <!-- Messages Stream -->
+            <div class="embedded-chat-stream" id="embeddedChatStream">
+                {% for msg in chat_messages %}
+                <div class="hub-msg-row {% if msg.user == request.user %}mine{% else %}theirs{% endif %}" data-id="{{ msg.id }}">
+                    <div class="hub-msg-avatar" title="{{ msg.user.username }}">
+                        {% if msg.user.avatar_display_url %}
+                        <img src="{{ msg.user.avatar_display_url }}" alt="avatar" style="width:100%;height:100%;object-fit:cover;">
+                        {% else %}
+                        {{ msg.user.username|slice:":1"|upper }}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 2px;" class="{% if msg.user == request.user %}text-end{% endif %}">
+                            {% if msg.user == request.user %}You{% else %}{{ msg.user.display_title|default:msg.user.username }}{% endif %} • {{ msg.created_at|date:"g:i A" }}
+                        </div>
+                        <div class="hub-msg-bubble">
+                            {{ msg.message }}
+                        </div>
+                    </div>
                 </div>
                 {% empty %}
-                <div class="text-center py-2 text-secondary small">Be the first to share your thoughts!</div>
+                <div class="text-center py-5 my-auto text-secondary" id="embeddedEmptyState">
+                    <i class="bi bi-chat-heart fs-2 mb-2 d-block text-primary opacity-50"></i>
+                    <h6 class="fw-bold text-primary">Live Community Room</h6>
+                    <p class="small text-secondary mb-0">Say hello and join the conversation!</p>
+                </div>
                 {% endfor %}
             </div>
 
-            <!-- Add comment form -->
-            <form method="POST" action="{% url 'community:add_comment' post.id %}">
-                {% csrf_token %}
-                <div class="input-group">
-                    <input type="text" name="content" class="form-control form-control-sm" placeholder="Write a supportive reply..." required style="border-radius: 10px 0 0 10px;">
-                    <button class="btn btn-sm btn-primary" type="submit" style="border-radius: 0 10px 10px 0;">Reply</button>
+            <!-- Footer & Input -->
+            <div class="embedded-chat-footer">
+                <div class="d-flex gap-2 mb-2">
+                    <span class="cat-btn py-1 px-2" style="font-size: 0.8rem; cursor: pointer;" onclick="insertHubEmoji('😊')">😊</span>
+                    <span class="cat-btn py-1 px-2" style="font-size: 0.8rem; cursor: pointer;" onclick="insertHubEmoji('❤️')">❤️</span>
+                    <span class="cat-btn py-1 px-2" style="font-size: 0.8rem; cursor: pointer;" onclick="insertHubEmoji('🙏')">🙏</span>
+                    <span class="cat-btn py-1 px-2" style="font-size: 0.8rem; cursor: pointer;" onclick="insertHubEmoji('✨')">✨</span>
+                    <span class="cat-btn py-1 px-2" style="font-size: 0.8rem; cursor: pointer;" onclick="insertHubEmoji('🌸')">🌸</span>
                 </div>
-                <div class="form-check mt-2">
-                    <input class="form-check-input" type="checkbox" name="is_anonymous" id="anonComment{{ post.id }}">
-                    <label class="form-check-label small text-secondary" for="anonComment{{ post.id }}">Reply anonymously</label>
+                <form id="embeddedChatForm" onsubmit="handleSendEmbeddedChat(event)">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input 
+                            type="text" 
+                            id="embeddedChatInput" 
+                            class="form-control" 
+                            placeholder="Share an uplifting thought or question..." 
+                            maxlength="1000" 
+                            required 
+                            style="border-radius: 14px 0 0 14px; padding: 0.75rem 1.25rem;">
+                        <button class="btn btn-primary" type="submit" id="embeddedSendBtn" style="border-radius: 0 14px 14px 0; padding: 0.75rem 1.5rem;">
+                            <i class="bi bi-send-fill" id="embeddedSendIcon"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Embedded Chat Sidebar (Online Peers) -->
+        <div class="embedded-chat-sidebar">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0 text-primary small">Active Members</h6>
+                <span class="badge bg-success bg-opacity-10 text-success small">{{ active_user_count|default:1 }} online</span>
+            </div>
+            <div class="d-flex flex-column gap-2">
+                <div class="d-flex align-items-center gap-2 small">
+                    <div class="hub-msg-avatar" style="width: 26px; height: 26px; font-size: 0.7rem;">
+                        {{ request.user.username|slice:":1"|upper }}
+                    </div>
+                    <span class="fw-semibold text-primary text-truncate">{{ request.user.display_title|default:request.user.username }} (You)</span>
                 </div>
-            </form>
+                {% for u in recent_active_users %}
+                {% if u.1 != request.user.id %}
+                <div class="d-flex align-items-center gap-2 small text-secondary">
+                    <div class="hub-msg-avatar" style="width: 26px; height: 26px; font-size: 0.7rem; background: #64748b;">
+                        {{ u.0|slice:":1"|upper }}
+                    </div>
+                    <span class="text-truncate">{{ u.0 }}</span>
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
         </div>
     </div>
-    {% empty %}
-    <div class="text-center py-5 text-secondary">
-        <i class="bi bi-chat-square-dots fs-1 mb-3 d-block text-muted"></i>
-        <h5>No discussions found in this topic yet</h5>
-        <p>Be the pioneer! Share an uplifting thought or ask a question to start the conversation.</p>
-    </div>
-    {% endfor %}
 </div>
 
 <!-- New Post Modal -->
 <div class="modal fade" id="newPostModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 20px; background: var(--card-bg); border: 1px solid var(--border-color);">
+        <div class="modal-content" style="border-radius: 24px; background: var(--card-bg); border: 1px solid var(--border-color);">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold">Start a Discussion</h5>
+                <h5 class="modal-title fw-bold text-primary">Share Your Story</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{% url 'community:create_post' %}">
+            <form method="POST" action="{% url 'community:create_post' %}" enctype="multipart/form-data" id="communityPostForm">
                 {% csrf_token %}
                 <div class="modal-body">
                     <div class="mb-3">
@@ -342,69 +758,95 @@
                     </div>
                     <div class="mb-3">
                         <label class="form-label text-secondary small fw-semibold">Title</label>
-                        <input type="text" name="title" class="form-control" placeholder="What's on your mind?" required style="border-radius: 12px;">
+                        <input type="text" name="title" class="form-control" maxlength="255" placeholder="Add a title (optional)" style="border-radius: 12px;">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label text-secondary small fw-semibold">Your Story or Question</label>
-                        <textarea name="content" class="form-control" rows="4" placeholder="Share your experience..." required style="border-radius: 12px;"></textarea>
+                        <label class="form-label text-secondary small fw-semibold">Your Reflection or Question</label>
+                        <textarea name="content" class="form-control" rows="5" placeholder="Share your experience, feelings, or questions..." style="border-radius: 12px;"></textarea>
                     </div>
-                    <div class="form-check">
+                    <div class="mb-3">
+                        <label for="postMediaFiles" class="form-label text-secondary small fw-semibold">Add up to six images or one video</label>
+                        <input type="file" name="media_files" id="postMediaFiles" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm,video/ogg,video/quicktime" multiple>
+                        <div id="postMediaPreview" class="d-flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+                    <div class="form-check p-3 rounded-3" style="background: var(--hover-bg);">
                         <input class="form-check-input" type="checkbox" name="is_anonymous" id="postIsAnonymous">
-                        <label class="form-check-label text-secondary small" for="postIsAnonymous">
+                        <label class="form-check-label text-secondary small fw-semibold" for="postIsAnonymous">
                             Post Anonymously (Hide your username and avatar)
                         </label>
                     </div>
                 </div>
                 <div class="modal-footer border-0 pt-0">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" style="border-radius: 12px;">Cancel</button>
-                    <button type="submit" class="btn btn-primary" style="border-radius: 12px;">Publish Post</button>
+                    <button type="submit" class="btn btn-primary" style="border-radius: 12px; font-weight: 600;">Publish Story</button>
                 </div>
             </form>
         </div>
-    </div>
-</div>
-
-<!-- Floating Live Chat Widget Trigger -->
-<div class="floating-chat-trigger" onclick="toggleChatDrawer()" title="Live Community Chat">
-    <i class="bi bi-chat-dots-fill"></i>
-</div>
-
-<!-- Floating Live Chat Drawer -->
-<div class="chat-drawer" id="communityChatDrawer">
-    <div class="chat-drawer-header">
-        <div class="d-flex align-items-center gap-2">
-            <i class="bi bi-chat-heart-fill fs-5"></i>
-            <div>
-                <div class="fw-bold small">Live Community Room</div>
-                <div class="text-white-50" style="font-size: 0.65rem;">Ephemerally kept (24h)</div>
-            </div>
-        </div>
-        <button class="btn btn-sm text-white" onclick="toggleChatDrawer()"><i class="bi bi-x-lg"></i></button>
-    </div>
-    <div class="chat-messages-wrap" id="chatDrawerMessages">
-        <!-- Messages dynamically loaded -->
-        <div class="text-center py-4 text-secondary small">Connecting to chat stream...</div>
-    </div>
-    <div class="chat-input-bar">
-        <input type="text" id="drawerChatInput" class="form-control form-control-sm" placeholder="Type a message..." style="border-radius: 20px;">
-        <button class="btn btn-sm btn-primary" onclick="sendDrawerMessage()" style="border-radius: 50%; width: 34px; height: 34px; display: flex; align-items: center; justify-content: center;">
-            <i class="bi bi-send-fill" style="font-size: 0.8rem;"></i>
-        </button>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    function toggleComments(postId) {
-        const sec = document.getElementById('comments-' + postId);
-        if (sec.style.display === 'block') {
-            sec.style.display = 'none';
+    const postMediaInput = document.getElementById('postMediaFiles');
+    const postMediaPreview = document.getElementById('postMediaPreview');
+    const previewUrls = [];
+    if (postMediaInput && postMediaPreview) {
+        postMediaInput.addEventListener('change', () => {
+            previewUrls.forEach(url => URL.revokeObjectURL(url));
+            previewUrls.length = 0;
+            postMediaPreview.replaceChildren();
+            for (const file of postMediaInput.files) {
+                if (!file.type.startsWith('image/') && !file.type.startsWith('video/')) continue;
+                const preview = document.createElement(file.type.startsWith('video/') ? 'video' : 'img');
+                const url = URL.createObjectURL(file);
+                previewUrls.push(url);
+                preview.src = url;
+                preview.className = 'rounded-3';
+                preview.style.width = '112px';
+                preview.style.height = '84px';
+                preview.style.objectFit = 'cover';
+                if (preview.tagName === 'VIDEO') preview.controls = true;
+                postMediaPreview.appendChild(preview);
+            }
+        });
+        document.getElementById('communityPostForm').addEventListener('submit', event => {
+            const files = [...postMediaInput.files];
+            const videos = files.filter(file => file.type.startsWith('video/'));
+            const images = files.filter(file => file.type.startsWith('image/'));
+            if (files.length > 6 || videos.length > 1 || (videos.length && images.length)) {
+                event.preventDefault();
+                alert('Attach up to six images or one video per post.');
+            }
+        });
+    }
+
+    // Tab Switching Logic
+    function switchCommunityTab(tabName) {
+        const secDiscussions = document.getElementById('sectionDiscussions');
+        const secChat = document.getElementById('sectionChat');
+        const btnDiscussions = document.getElementById('tabBtnDiscussions');
+        const btnChat = document.getElementById('tabBtnChat');
+
+        if (tabName === 'chat') {
+            secDiscussions.classList.add('d-none');
+            secChat.classList.remove('d-none');
+            btnDiscussions.classList.remove('active');
+            btnChat.classList.add('active');
+            scrollEmbeddedChat();
+            startEmbeddedPolling();
+            history.replaceState(null, '', '?tab=chat');
         } else {
-            sec.style.display = 'block';
+            secChat.classList.add('d-none');
+            secDiscussions.classList.remove('d-none');
+            btnChat.classList.remove('active');
+            btnDiscussions.classList.add('active');
+            stopEmbeddedPolling();
+            history.replaceState(null, '', window.location.pathname);
         }
     }
 
+    // Like post functionality
     function toggleLikePost(postId, btn) {
         fetch(`/community/like/${postId}/`, {
             method: 'POST',
@@ -427,57 +869,176 @@
         .catch(err => console.error(err));
     }
 
-    function toggleChatDrawer() {
-        const drawer = document.getElementById('communityChatDrawer');
-        drawer.classList.toggle('open');
-        if (drawer.classList.contains('open')) {
-            loadDrawerMessages();
+    // Toggle comments dropdown
+    function toggleComments(postId) {
+        const sec = document.getElementById('comments-' + postId);
+        if (sec.style.display === 'block') {
+            sec.style.display = 'none';
+        } else {
+            sec.style.display = 'block';
         }
     }
 
-    function loadDrawerMessages() {
-        fetch('/community/chat/messages/')
-        .then(r => r.json())
-        .then(data => {
-            const wrap = document.getElementById('chatDrawerMessages');
-            if (!data.messages || data.messages.length === 0) {
-                wrap.innerHTML = '<div class="text-center py-4 text-secondary small">Say hello to the community! 👋</div>';
-                return;
-            }
-            wrap.innerHTML = data.messages.map(m => `
-                <div class="chat-bubble ${m.is_mine ? 'mine' : 'theirs'}">
-                    <div style="font-size: 0.65rem; opacity: 0.8; margin-bottom: 2px;">${m.author}</div>
-                    ${m.message}
-                </div>
-            `).join('');
-            wrap.scrollTop = wrap.scrollHeight;
-        })
-        .catch(e => console.error(e));
+    // Embedded Chat Logic
+    let embeddedLastId = 0;
+    let embeddedPollInterval = null;
+    let embeddedSound = localStorage.getItem('zen_chat_sound') !== 'false';
+
+    document.querySelectorAll('.hub-msg-row[data-id]').forEach(el => {
+        const id = parseInt(el.getAttribute('data-id'), 10);
+        if (id > embeddedLastId) embeddedLastId = id;
+    });
+
+    const embeddedChatStream = document.getElementById('embeddedChatStream');
+    const embeddedChatInput = document.getElementById('embeddedChatInput');
+
+    function scrollEmbeddedChat(smooth = false) {
+        if (embeddedChatStream) {
+            embeddedChatStream.scrollTo({
+                top: embeddedChatStream.scrollHeight,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+        }
+    }
+    scrollEmbeddedChat(false);
+
+    function insertHubEmoji(emoji) {
+        if (!embeddedChatInput) return;
+        embeddedChatInput.value += emoji;
+        embeddedChatInput.focus();
     }
 
-    function sendDrawerMessage() {
-        const input = document.getElementById('drawerChatInput');
-        const msg = input.value.trim();
-        if (!msg) return;
-        input.value = '';
+    function toggleEmbeddedSound() {
+        embeddedSound = !embeddedSound;
+        localStorage.setItem('zen_chat_sound', embeddedSound);
+        const icon = document.getElementById('embeddedSoundIcon');
+        if (icon) {
+            icon.className = embeddedSound ? 'bi bi-volume-up-fill text-primary' : 'bi bi-volume-mute-fill text-secondary';
+        }
+    }
 
-        fetch('/community/chat/send/', {
+    function playEmbeddedChime() {
+        if (!embeddedSound) return;
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.12);
+            gain.gain.setValueAtTime(0.06, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.3);
+        } catch(e) {}
+    }
+
+    function appendEmbeddedMessage(m, animate = true) {
+        const empty = document.getElementById('embeddedEmptyState');
+        if (empty) empty.remove();
+
+        if (document.querySelector(`.hub-msg-row[data-id="${m.id}"]`)) return;
+
+        const row = document.createElement('div');
+        row.className = `hub-msg-row ${m.is_mine ? 'mine' : 'theirs'}`;
+        row.setAttribute('data-id', m.id);
+
+        const avatarMarkup = m.avatar_url 
+            ? `<img src="${m.avatar_url}" alt="avatar" style="width:100%;height:100%;object-fit:cover;">` 
+            : (m.avatar_initial || m.username.charAt(0).toUpperCase());
+
+        const divSafe = document.createElement('div');
+        divSafe.textContent = m.message;
+        const safeText = divSafe.innerHTML;
+
+        row.innerHTML = `
+            <div class="hub-msg-avatar" title="${m.username}">
+                ${avatarMarkup}
+            </div>
+            <div>
+                <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 2px;" class="${m.is_mine ? 'text-end' : ''}">
+                    ${m.is_mine ? 'You' : (m.author || m.username)} • ${m.time}
+                </div>
+                <div class="hub-msg-bubble">
+                    ${safeText}
+                </div>
+            </div>
+        `;
+
+        embeddedChatStream.appendChild(row);
+        scrollEmbeddedChat(animate);
+    }
+
+    function handleSendEmbeddedChat(e) {
+        e.preventDefault();
+        const text = embeddedChatInput.value.trim();
+        if (!text) return;
+
+        const btn = document.getElementById('embeddedSendBtn');
+        const icon = document.getElementById('embeddedSendIcon');
+        btn.disabled = true;
+        icon.className = 'spinner-border spinner-border-sm';
+
+        fetch("{% url 'community:send_chat_message' %}", {
             method: 'POST',
             headers: {
                 'X-CSRFToken': '{{ csrf_token }}',
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ message: msg })
+            body: JSON.stringify({ message: text })
         })
         .then(r => r.json())
         .then(data => {
-            loadDrawerMessages();
+            if (data.status === 'ok' && data.message) {
+                embeddedChatInput.value = '';
+                if (data.message.id > embeddedLastId) {
+                    embeddedLastId = data.message.id;
+                }
+                appendEmbeddedMessage(data.message, true);
+            }
+        })
+        .catch(err => console.error(err))
+        .finally(() => {
+            btn.disabled = false;
+            icon.className = 'bi bi-send-fill';
+            embeddedChatInput.focus();
         });
     }
 
-    // Allow Enter key to send in chat input
-    document.getElementById('drawerChatInput')?.addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') sendDrawerMessage();
-    });
+    function pollEmbeddedMessages() {
+        fetch(`{% url 'community:chat_messages' %}?since=${embeddedLastId}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok' && data.messages && data.messages.length > 0) {
+                let hasOthers = false;
+                data.messages.forEach(m => {
+                    if (m.id > embeddedLastId) embeddedLastId = m.id;
+                    if (!m.is_mine) hasOthers = true;
+                    appendEmbeddedMessage(m, true);
+                });
+                if (hasOthers) playEmbeddedChime();
+            }
+        })
+        .catch(() => {});
+    }
+
+    function startEmbeddedPolling() {
+        if (!embeddedPollInterval) {
+            embeddedPollInterval = setInterval(pollEmbeddedMessages, 2500);
+        }
+    }
+
+    function stopEmbeddedPolling() {
+        if (embeddedPollInterval) {
+            clearInterval(embeddedPollInterval);
+            embeddedPollInterval = null;
+        }
+    }
+
+    {% if active_tab == 'chat' %}
+    startEmbeddedPolling();
+    {% endif %}
 </script>
 {% endblock %}
