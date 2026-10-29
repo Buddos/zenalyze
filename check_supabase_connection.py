@@ -52,12 +52,12 @@ def check_supabase():
         print("    [-] Neither DATABASE_URL nor SUPABASE_DB_PASSWORD is set in .env.")
         print("    [-] Django is currently using the local SQLite fallback: BASE_DIR / 'db.sqlite3'.")
         print("\n--> TO CONNECT TO SUPABASE POSTGRESQL:")
-        print("    1. Open your Supabase Dashboard: https://supabase.com/dashboard/project/cpmjwdmjgkqxehjkvhgb")
-        print("    2. Navigate to: Project Settings -> Database")
-        print("    3. Copy the Connection String (URI) under 'Connection Pooling' (port 6543) or 'Direct' (port 5432).")
-        print("    4. Paste it into your .env file as:")
-        print("       DATABASE_URL=postgresql://postgres.cpmjwdmjgkqxehjkvhgb:[YOUR-PASSWORD]@aws-0-eu-central-1.pooler.supabase.com:6543/postgres")
-        print("    5. Run: python manage.py migrate")
+        print("    1. Open the active project in your Supabase Dashboard.")
+        print("    2. Open Connect and copy its Transaction Pooler connection string (port 6543).")
+        print("    3. Paste it into your .env file as:")
+        print("       DATABASE_URL=<complete-connection-string-from-Supabase>")
+        print("       Keep the username/project reference and pooler host from that same project.")
+        print("    4. Run: python manage.py migrate")
         return
 
     try:
@@ -72,7 +72,9 @@ def check_supabase():
             print(f"       {row[0]}")
     except Exception as e:
         print(f"    [!] Database Connection Failed: {e}")
-        print("    Please check your database password or host connection pooler settings in .env.")
+        print("    Verify DATABASE_URL is copied from the active project's Connect dialog.")
+        print("    For a tenant/user ENOTFOUND error, confirm its username project reference")
+        print("    and pooler host/region belong to that same project.")
 
 if __name__ == '__main__':
     check_supabase()

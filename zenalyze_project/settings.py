@@ -108,13 +108,21 @@ if DATABASE_URL:
         )
     }
 elif SUPABASE_DB_PASSWORD:
+    SUPABASE_DB_HOST = os.environ.get('SUPABASE_DB_HOST')
+    SUPABASE_DB_USER = os.environ.get('SUPABASE_DB_USER')
+    if not SUPABASE_DB_HOST or not SUPABASE_DB_USER:
+        raise ImproperlyConfigured(
+            'Set SUPABASE_DB_HOST and SUPABASE_DB_USER from the active Supabase '
+            'project connection details, or configure DATABASE_URL.'
+        )
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': os.environ.get('SUPABASE_DB_NAME', 'postgres'),
-            'USER': os.environ.get('SUPABASE_DB_USER', f"postgres.{os.environ.get('SUPABASE_PROJECT_ID', 'cpmjwdmjgkqxehjkvhgb')}"),
+            'USER': SUPABASE_DB_USER,
             'PASSWORD': SUPABASE_DB_PASSWORD,
-            'HOST': os.environ.get('SUPABASE_DB_HOST', 'aws-1-eu-west-1.pooler.supabase.com'),
+            'HOST': SUPABASE_DB_HOST,
             'PORT': os.environ.get('SUPABASE_DB_PORT', '6543'),
         }
     }
@@ -184,4 +192,3 @@ SESSION_SAVE_EVERY_REQUEST = True
 SESSION_COOKIE_HTTPONLY = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-

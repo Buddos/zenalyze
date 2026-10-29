@@ -178,43 +178,7 @@ Visit **http://localhost:8000** 🎉
 
 ---
 
-## 🗄 Supabase Database Setup
 
-The project ships with a ready-to-run PostgreSQL migration file for Supabase.
-
-### Steps
-
-1. **Create a Supabase project** at [supabase.com/dashboard](https://supabase.com/dashboard)
-
-2. **Open the SQL Editor**:
-   Navigate to your project → **SQL Editor** → **New Query**
-
-3. **Run the migration**:
-   Copy the contents of `supabase_schema_and_data.sql` and paste into the editor, then click **Run**.
-
-   > This creates all **49 tables** with proper indexes, constraints, sequences, and seed data.
-
-4. **Get your connection string**:
-   Go to **Project Settings → Database → Connection String (URI)**
-   Copy the **Transaction Pooler** URI (port `6543`).
-
-5. **Add to `.env`**:
-   ```env
-   DATABASE_URL=postgresql://postgres.[project-ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
-   ```
-
-6. **Apply Django migrations**:
-   ```bash
-   python manage.py migrate
-   ```
-
-### Verify the connection
-
-```bash
-python check_supabase_connection.py
-```
-
----
 
 
 

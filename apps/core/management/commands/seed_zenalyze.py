@@ -1,3 +1,6 @@
+from pathlib import Path
+
+from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
@@ -5,14 +8,60 @@ from decimal import Decimal
 
 from apps.accounts.models import User, UserSettings
 from apps.wellness.models import MoodEntry, JournalEntry, Exercise, UserExerciseSession, DailyMotivation, FinancialEntry, RelationshipEntry, WellnessGoal
-from apps.community.models import CommunityPost, PostComment, PostLike, CommunityMessage
+from apps.community.models import CommunityPost, PostComment, PostLike, CommunityMessage, MediaAsset
 from apps.quotes.models import Quote, QuoteUserInteraction
 from apps.therapists.models import Therapist, TherapyResource
 from apps.administration.models import CrisisResource, TeamMember, SystemSetting
 from apps.notifications.models import Notification, Announcement
 
+
 class Command(BaseCommand):
     help = 'Seeds the Zenalyze database with complete initial data'
+
+    def attach_local_media(self, exercise_title, default_video, default_thumbnail):
+        media_root = Path(settings.MEDIA_ROOT)
+        video_name = default_video.split('/')[-1]
+        thumbnail_name = default_thumbnail.split('/')[-1]
+
+        video_path = media_root / 'uploads' / 'exercises' / 'videos' / video_name
+        thumbnail_path = media_root / 'uploads' / 'exercises' / 'thumbnails' / thumbnail_name
+        if not video_path.exists():
+            video_path = settings.BASE_DIR / 'uploads' / 'exercises' / 'videos' / video_name
+        if not thumbnail_path.exists():
+            thumbnail_path = settings.BASE_DIR / 'uploads' / 'exercises' / 'thumbnails' / thumbnail_name
+
+        exercise = Exercise.objects.filter(title=exercise_title).first()
+        if not exercise:
+            return
+
+        rel_video = ''
+        rel_thumb = ''
+        if video_path.exists():
+            rel_video = str(Path('uploads/exercises/videos') / video_name)
+            exercise.video_file = rel_video
+            exercise.status = 'published'
+            exercise.is_active = True
+            exercise.published_at = timezone.now()
+        if thumbnail_path.exists():
+            rel_thumb = str(Path('uploads/exercises/thumbnails') / thumbnail_name)
+            exercise.thumbnail_file = rel_thumb
+
+        if rel_video:
+            media_asset, _ = MediaAsset.objects.get_or_create(
+                file=rel_video,
+                defaults={
+                    'asset_type': 'video',
+                    'thumbnail': rel_thumb,
+                    'processing_status': 'ready',
+                },
+            )
+            if rel_thumb and media_asset.thumbnail in ['', None]:
+                media_asset.thumbnail = rel_thumb
+                media_asset.save(update_fields=['thumbnail'])
+            exercise.media_asset = media_asset
+
+        exercise.thumbnail_image = ''
+        exercise.save()
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.NOTICE('Starting Zenalyze database seeding...'))
@@ -127,8 +176,28 @@ class Command(BaseCommand):
                 'benefits': 'Interrupts panic attacks, pulls awareness into the present reality, restores emotional control.',
             },
         ]
+        media_mapping = {
+            'Box Breathing for Instant Calm': (
+                'uploads/exercises/videos/exercise_6a09f6bd75a97.mp4',
+                'uploads/exercises/thumbnails/thumb_6a0a01df4eefb.jpeg',
+            ),
+            '4-7-8 Relaxing Breath Technique': (
+                'uploads/exercises/videos/exercise_6a0a02d9c47f0.mp4',
+                'uploads/exercises/thumbnails/thumb_6a0a02d9c4a0c.jpeg',
+            ),
+            'Mindfulness Body Scan Meditation': (
+                'uploads/exercises/videos/exercise_6a09f6bd75a97.mp4',
+                'uploads/exercises/thumbnails/thumb_6a0a028907a52.webp',
+            ),
+            'Loving-Kindness (Metta) Meditation': (
+                'uploads/exercises/videos/exercise_6a0a02d9c47f0.mp4',
+                'uploads/exercises/thumbnails/thumb_6a0a028907a52.webp',
+            ),
+        }
         for ex in exercises_data:
-            Exercise.objects.get_or_create(title=ex['title'], defaults=ex)
+            exercise, _ = Exercise.objects.get_or_create(title=ex['title'], defaults=ex)
+            if ex['title'] in media_mapping:
+                self.attach_local_media(ex['title'], *media_mapping[ex['title']])
         self.stdout.write(self.style.SUCCESS(f'Seeded {len(exercises_data)} exercises.'))
 
         # 4. Seed Therapists

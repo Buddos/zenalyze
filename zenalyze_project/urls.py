@@ -3,6 +3,7 @@ from django.urls import path, include, re_path
 from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
+from apps.core.views import brand_logo_view, favicon_view
 
 def legacy_redirect(target):
     def view(request):
@@ -15,6 +16,9 @@ admin.site.site_title = "Zenalyze Admin Portal"
 admin.site.index_title = "Zenalyze Management & Database Control"
 
 urlpatterns = [
+    path('favicon.ico', favicon_view, name='favicon'),
+    path('brand/logo.png', brand_logo_view, name='brand-logo'),
+
     # Custom Administration endpoints (must precede admin.site.urls so specific routes like /admin/users/ are caught first)
     path('', include('apps.administration.urls')),
 
@@ -73,6 +77,5 @@ urlpatterns = [
     path('admin-logs.php', legacy_redirect('/admin/logs/')),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+urlpatterns += static(settings.STATIC_URL, document_root=settings.STATICFILES_DIRS[0])
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

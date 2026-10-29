@@ -1,7 +1,20 @@
+from django.conf import settings
+from django.http import FileResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from apps.administration.models import TeamMember, ContactMessage, CrisisResource
 from apps.quotes.models import Quote
+
+
+def favicon_view(request):
+    favicon_path = settings.BASE_DIR / 'static' / 'images' / 'favicon.ico'
+    return FileResponse(favicon_path.open('rb'), content_type='image/vnd.microsoft.icon')
+
+
+def brand_logo_view(request):
+    logo_path = settings.BASE_DIR / 'static' / 'images' / 'zenalyze-mark.png'
+    return FileResponse(logo_path.open('rb'), content_type='image/png')
+
 
 def index_view(request):
     if request.user.is_authenticated:

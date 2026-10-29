@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Zenalyze Control Center{% endblock %}</title>
+    <link rel="icon" href="/favicon.ico" sizes="any">
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
@@ -64,12 +65,7 @@
             width: 40px;
             height: 40px;
             border-radius: 10px;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.25rem;
+            object-fit: cover;
             flex-shrink: 0;
         }
         .admin-nav-item {
@@ -129,7 +125,7 @@
 <body>
     <aside class="admin-sidebar" id="adminSidebar">
         <div class="admin-sidebar-header">
-            <div class="admin-logo-icon"><i class="bi bi-shield-lock-fill"></i></div>
+            <img class="admin-logo-icon" src="/brand/logo.png" alt="">
             <div>
                 <div class="fw-bold text-white fs-6">Zenalyze Control</div>
                 <div class="text-white-50" style="font-size: 0.68rem; letter-spacing: 0.05em; text-transform: uppercase;">Super Admin Console</div>
