@@ -413,29 +413,41 @@ def financial_view(request):
         display_currency = 'KES'
     display_symbol, currency_name = supported_currencies[display_currency]
     entries = FinancialEntry.objects.filter(user=user, currency=display_currency)
+    today = timezone.localdate()
     total_income = sum((entry.amount for entry in entries if entry.category == 'Income'), Decimal('0'))
-    total_expenses = sum((entry.amount for entry in entries if entry.category != 'Income'), Decimal('0'))
+    total_savings = sum((entry.amount for entry in entries if entry.category == 'Savings'), Decimal('0'))
+    total_expenses = sum(
+        (entry.amount for entry in entries if entry.category not in {'Income', 'Savings'}),
+        Decimal('0'),
+    )
     spending_by_category = {}
     for entry in entries:
-        if entry.category != 'Income':
+        if entry.category not in {'Income', 'Savings'}:
             spending_by_category[entry.category] = spending_by_category.get(entry.category, Decimal('0')) + entry.amount
     sorted_spending = sorted(spending_by_category.items(), key=lambda item: item[1], reverse=True)
-    monthly_entries = entries.filter(created_at__year=timezone.now().year, created_at__month=timezone.now().month)
+    monthly_entries = entries.filter(created_at__year=today.year, created_at__month=today.month)
     month_income = sum((entry.amount for entry in monthly_entries if entry.category == 'Income'), Decimal('0'))
-    month_expenses = sum((entry.amount for entry in monthly_entries if entry.category != 'Income'), Decimal('0'))
-    net_balance = total_income - total_expenses
-    savings_rate = (month_income - month_expenses) / month_income * 100 if month_income else Decimal('0')
+    month_savings = sum((entry.amount for entry in monthly_entries if entry.category == 'Savings'), Decimal('0'))
+    month_expenses = sum(
+        (entry.amount for entry in monthly_entries if entry.category not in {'Income', 'Savings'}),
+        Decimal('0'),
+    )
+    net_balance = total_income - total_expenses - total_savings
+    savings_rate = month_savings / month_income * 100 if month_income else Decimal('0')
 
     return render(request, 'wellness/financial.html', {
+        'active_nav': 'financial',
         'entries': entries[:30],
         'total_income': total_income,
         'total_expense': total_expenses,
+        'total_savings': total_savings,
         'net_balance': net_balance,
         'display_currency': display_currency,
         'display_symbol': display_symbol,
         'currency_name': currency_name,
         'month_income': month_income,
         'month_expenses': month_expenses,
+        'month_savings': month_savings,
         'savings_rate': savings_rate,
         'savings_progress': min(max(float(savings_rate), 0), 100),
         'month_label': timezone.localtime().strftime('%B %Y'),
@@ -443,6 +455,178 @@ def financial_view(request):
         'spending_values': [float(value) for _, value in sorted_spending],
         'spending_total': sum(spending_by_category.values(), Decimal('0')),
     })
+
+
+@login_required
+def financial_insights_view(request):
+    supported_currencies = {
+        'KES': ('KSh', 'Kenyan shilling'),
+        'USD': ('$', 'US dollar'),
+        'EUR': ('€', 'Euro'),
+    }
+    currency = request.GET.get('currency', 'KES').upper()
+    if currency not in supported_currencies:
+        currency = 'KES'
+    display_symbol, currency_name = supported_currencies[currency]
+
+    today = timezone.localdate()
+    month_start = today.replace(day=1)
+    previous_month_date = month_start - timedelta(days=1)
+    previous_month_start = previous_month_date.replace(day=1)
+    transactions = FinancialEntry.objects.filter(user=request.user, currency=currency)
+    current_month = transactions.filter(
+        created_at__year=today.year,
+        created_at__month=today.month,
+    )
+    previous_month = transactions.filter(
+        created_at__year=previous_month_date.year,
+        created_at__month=previous_month_date.month,
+    )
+
+    def totals(entries):
+        income = Decimal('0')
+        expenses = Decimal('0')
+        savings = Decimal('0')
+        categories = {}
+        for entry in entries:
+            if entry.category == 'Income':
+                income += entry.amount
+            elif entry.category == 'Savings':
+                savings += entry.amount
+            else:
+                expenses += entry.amount
+                categories[entry.category] = categories.get(entry.category, Decimal('0')) + entry.amount
+        return income, expenses, savings, categories
+
+    month_income, month_expenses, month_savings, category_totals = totals(current_month)
+    previous_income, previous_expenses, previous_savings, _ = totals(previous_month)
+    remaining = month_income - month_expenses - month_savings
+    savings_rate = month_savings / month_income * 100 if month_income else Decimal('0')
+    expense_change = (
+        (month_expenses - previous_expenses) / previous_expenses * 100
+        if previous_expenses
+        else None
+    )
+    top_categories = sorted(category_totals.items(), key=lambda item: item[1], reverse=True)
+    category_share = [
+        {
+            'name': name,
+            'amount': amount,
+            'percentage': amount / month_expenses * 100 if month_expenses else Decimal('0'),
+        }
+        for name, amount in top_categories
+    ]
+
+    recommendations = []
+    if not current_month.exists():
+        recommendations.append({
+            'title': 'Start with a clear picture',
+            'detail': 'Record income, expenses, and any savings this month to unlock personalized insights.',
+            'icon': 'bi-journal-plus',
+            'tone': 'primary',
+        })
+    elif not month_income:
+        recommendations.append({
+            'title': 'Add your income for context',
+            'detail': 'Recording income lets Zenalyze estimate your savings rate and how much remains after spending.',
+            'icon': 'bi-cash-coin',
+            'tone': 'primary',
+        })
+    elif savings_rate < 10:
+        recommendations.append({
+            'title': 'Consider a small savings target',
+            'detail': f'Your recorded savings are {savings_rate:.0f}% of this month’s income. If it fits your needs, try setting aside a manageable amount first.',
+            'icon': 'bi-piggy-bank',
+            'tone': 'warning',
+        })
+    else:
+        recommendations.append({
+            'title': 'Keep your savings habit going',
+            'detail': f'You have recorded savings equal to {savings_rate:.0f}% of this month’s income.',
+            'icon': 'bi-piggy-bank',
+            'tone': 'success',
+        })
+
+    if remaining < 0:
+        recommendations.append({
+            'title': 'Review this month’s cash flow',
+            'detail': f'Recorded expenses and savings are {display_symbol} {abs(remaining):.2f} above recorded income. Review categories and update any missing or inaccurate entries.',
+            'icon': 'bi-exclamation-triangle',
+            'tone': 'danger',
+        })
+    elif top_categories and month_expenses:
+        largest_category, largest_amount = top_categories[0]
+        share = largest_amount / month_expenses * 100
+        if share >= 40:
+            recommendations.append({
+                'title': f'Review spending on {largest_category.lower()}',
+                'detail': f'{largest_category} makes up {share:.0f}% of recorded expenses. Check whether a practical limit or lower-cost option would help.',
+                'icon': 'bi-pie-chart',
+                'tone': 'info',
+            })
+
+    if expense_change is not None and expense_change > 15:
+        recommendations.append({
+            'title': 'Spending is up from last month',
+            'detail': f'Recorded expenses are {expense_change:.0f}% higher than last month. Compare recent transactions to see what changed.',
+            'icon': 'bi-graph-up-arrow',
+            'tone': 'warning',
+        })
+    elif previous_expenses and expense_change is not None and expense_change < -10:
+        recommendations.append({
+            'title': 'Recorded expenses are down',
+            'detail': f'Expenses are {abs(expense_change):.0f}% lower than last month. Keep tracking to see whether this trend continues.',
+            'icon': 'bi-graph-down-arrow',
+            'tone': 'success',
+        })
+
+    trend = []
+    for offset in range(5, -1, -1):
+        first_of_month = month_start
+        for _ in range(offset):
+            first_of_month = (first_of_month - timedelta(days=1)).replace(day=1)
+        period = transactions.filter(
+            created_at__year=first_of_month.year,
+            created_at__month=first_of_month.month,
+        )
+        income, expenses, savings, _ = totals(period)
+        trend.append({
+            'label': first_of_month.strftime('%b'),
+            'income': float(income),
+            'expenses': float(expenses),
+            'savings': float(savings),
+        })
+
+    return render(request, 'wellness/financial_insights.html', {
+        'active_nav': 'financial_insights',
+        'display_currency': currency,
+        'currency_name': currency_name,
+        'display_symbol': display_symbol,
+        'month_label': month_start.strftime('%B %Y'),
+        'previous_month_label': previous_month_start.strftime('%B %Y'),
+        'month_income': month_income,
+        'month_expenses': month_expenses,
+        'month_savings': month_savings,
+        'remaining': remaining,
+        'savings_rate': savings_rate,
+        'previous_income': previous_income,
+        'previous_expenses': previous_expenses,
+        'previous_savings': previous_savings,
+        'expense_change': expense_change,
+        'category_breakdown': category_share,
+        'category_labels': [item['name'] for item in category_share],
+        'category_values': [float(item['amount']) for item in category_share],
+        'trend': trend,
+        'trend_labels': [item['label'] for item in trend],
+        'trend_income': [item['income'] for item in trend],
+        'trend_expenses': [item['expenses'] for item in trend],
+        'trend_savings': [item['savings'] for item in trend],
+        'recommendations': recommendations,
+        'recent_transactions': transactions[:10],
+        'transaction_count': transactions.count(),
+        'month_transaction_count': current_month.count(),
+    })
+
 
 @login_required
 def delete_financial_entry(request, entry_id):

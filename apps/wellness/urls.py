@@ -19,6 +19,7 @@ urlpatterns = [
     path('history/', views.history_view, name='history'),
     path('financial/', views.financial_view, name='financial'),
     path('financial-planner/', views.financial_view, name='financial_planner'),
+    path('financial/insights/', views.financial_insights_view, name='financial_insights'),
     path('financial/delete/<int:entry_id>/', views.delete_financial_entry, name='financial_delete'),
     path('relationships/', views.relationships_view, name='relationships'),
     path('motivations/', views.motivations_view, name='motivations'),

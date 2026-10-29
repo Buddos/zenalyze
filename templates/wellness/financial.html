@@ -169,12 +169,12 @@
         <article class="money-summary expenses">
             <div class="money-summary-label"><span class="money-summary-icon"><i class="bi bi-arrow-up-right" aria-hidden="true"></i></span> Total outflow</div>
             <div class="money-summary-value">{{ display_symbol }} {{ total_expense|floatformat:2 }}</div>
-            <div class="money-summary-note">All recorded spending in {{ display_currency }}</div>
+            <div class="money-summary-note">Excludes transfers recorded as savings</div>
         </article>
         <article class="money-summary balance">
             <div class="money-summary-label"><span class="money-summary-icon"><i class="bi bi-wallet2" aria-hidden="true"></i></span> Net balance</div>
             <div class="money-summary-value">{{ display_symbol }} {{ net_balance|floatformat:2 }}</div>
-            <div class="money-summary-note">Income minus recorded outflow</div>
+            <div class="money-summary-note">Income minus expenses and savings entries</div>
         </article>
     </section>
 
@@ -189,10 +189,11 @@
             </div>
             <div class="cashflow-items">
                 <div><div class="cashflow-label">Income</div><div class="cashflow-amount income">{{ display_symbol }} {{ month_income|floatformat:2 }}</div></div>
-                <div><div class="cashflow-label">Outflow</div><div class="cashflow-amount expense">{{ display_symbol }} {{ month_expenses|floatformat:2 }}</div></div>
+                <div><div class="cashflow-label">Expenses</div><div class="cashflow-amount expense">{{ display_symbol }} {{ month_expenses|floatformat:2 }}</div></div>
+                <div><div class="cashflow-label">Savings recorded</div><div class="cashflow-amount income">{{ display_symbol }} {{ month_savings|floatformat:2 }}</div></div>
             </div>
             <div class="d-flex justify-content-between align-items-center mt-3 small">
-                <span class="text-secondary">Savings rate</span>
+                <span class="text-secondary">Recorded savings rate</span>
                 <strong>{{ savings_rate|floatformat:0 }}%</strong>
             </div>
             <div class="savings-meter" role="img" aria-label="Savings rate {{ savings_rate|floatformat:0 }} percent">

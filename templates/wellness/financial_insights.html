@@ -1,0 +1,223 @@
+{% extends 'base_dashboard.html' %}
+
+{% block title %}Financial Insights - Zenalyze{% endblock %}
+{% block topbar_title %}Financial Insights{% endblock %}
+{% block topbar_subtitle %}Understand your spending, savings, and monthly cash flow{% endblock %}
+
+{% block extra_css %}
+<style>
+    .insights-page { color: var(--text-primary); }
+    .insights-heading { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+    .insights-heading h2 { margin: 0.25rem 0 0; font-size: 1.55rem; font-weight: 750; color: var(--text-primary); }
+    .insights-heading p { margin: 0.3rem 0 0; color: var(--text-secondary); font-size: 0.88rem; }
+    .insights-kicker { color: #13795b; font-size: 0.7rem; text-transform: uppercase; font-weight: 750; letter-spacing: 0.08em; }
+    .insights-actions { display: flex; align-items: center; gap: 0.6rem; }
+    .insights-actions .form-select, .insights-actions .btn { min-height: 40px; border-radius: 7px; }
+    .insights-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.8rem; margin-bottom: 1rem; }
+    .insight-card, .insight-panel { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; }
+    .insight-card { min-height: 126px; padding: 1rem; }
+    .insight-label { color: var(--text-secondary); font-size: 0.78rem; font-weight: 650; }
+    .insight-value { margin-top: 0.55rem; color: var(--text-primary); font-size: clamp(1.15rem, 2vw, 1.65rem); font-weight: 750; overflow-wrap: anywhere; }
+    .insight-note { margin-top: 0.15rem; color: var(--text-secondary); font-size: 0.72rem; }
+    .insight-panels { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(260px, 0.8fr); gap: 0.8rem; margin-bottom: 1rem; }
+    .insight-panel { padding: 1rem 1.1rem; min-width: 0; }
+    .insight-panel h3 { margin: 0; font-size: 0.98rem; font-weight: 720; color: var(--text-primary); }
+    .insight-panel-subtitle { margin: 0.25rem 0 0.75rem; color: var(--text-secondary); font-size: 0.76rem; }
+    .chart-wrap { height: 245px; position: relative; }
+    .recommendation-list { display: grid; gap: 0.7rem; }
+    .recommendation { padding: 0.8rem; border-radius: 7px; border: 1px solid var(--border-color); background: var(--bg-primary); }
+    .recommendation-header { display: flex; align-items: center; gap: 0.5rem; font-size: 0.83rem; font-weight: 700; }
+    .recommendation p { margin: 0.35rem 0 0; color: var(--text-secondary); font-size: 0.78rem; line-height: 1.5; }
+    .recommendation.warning .recommendation-header { color: #a16207; }
+    .recommendation.danger .recommendation-header { color: #b42318; }
+    .recommendation.success .recommendation-header { color: #13795b; }
+    .category-list { display: grid; gap: 0.65rem; }
+    .category-row { display: grid; grid-template-columns: minmax(90px, 1fr) 2fr auto; gap: 0.6rem; align-items: center; font-size: 0.78rem; }
+    .category-name { color: var(--text-primary); font-weight: 600; }
+    .category-meter { height: 7px; overflow: hidden; background: var(--hover-bg); border-radius: 9px; }
+    .category-meter span { display: block; height: 100%; background: #5d8aa8; border-radius: inherit; }
+    .category-amount { color: var(--text-secondary); white-space: nowrap; text-align: right; }
+    .transactions-table { margin-bottom: 0; font-size: 0.82rem; }
+    .transactions-table th { color: var(--text-secondary); font-size: 0.68rem; text-transform: uppercase; }
+    .transactions-table td, .transactions-table th { padding: 0.65rem 0.5rem; }
+    .empty-state { padding: 1.5rem 0.5rem; color: var(--text-secondary); text-align: center; font-size: 0.84rem; }
+    @media (max-width: 900px) {
+        .insights-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .insight-panels { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 480px) {
+        .insights-heading { align-items: flex-start; }
+        .insights-actions { width: 100%; }
+        .insights-actions form { flex: 1; }
+        .insights-actions .form-select { width: 100%; }
+        .insight-card { min-height: 112px; padding: 0.8rem; }
+        .insight-panel { padding: 0.85rem; }
+        .category-row { grid-template-columns: 85px 1fr; }
+        .category-amount { grid-column: 2; text-align: left; }
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="container-fluid insights-page">
+    <header class="insights-heading">
+        <div>
+            <div class="insights-kicker">Your money overview</div>
+            <h2>{{ month_label }}</h2>
+            <p>Based on your recorded {{ display_currency }} transactions. Insights update from your account data.</p>
+        </div>
+        <div class="insights-actions">
+            <form method="get">
+                <label class="visually-hidden" for="insightsCurrency">Currency</label>
+                <select id="insightsCurrency" class="form-select" name="currency" onchange="this.form.submit()">
+                    <option value="KES" {% if display_currency == 'KES' %}selected{% endif %}>KES · KSh</option>
+                    <option value="USD" {% if display_currency == 'USD' %}selected{% endif %}>USD · $</option>
+                    <option value="EUR" {% if display_currency == 'EUR' %}selected{% endif %}>EUR · €</option>
+                </select>
+            </form>
+            <a class="btn btn-outline-primary" href="{% url 'wellness:financial' %}?currency={{ display_currency }}">
+                <i class="bi bi-journal-text me-1"></i> Planner
+            </a>
+        </div>
+    </header>
+
+    <section class="insights-grid" aria-label="Monthly financial summary">
+        <article class="insight-card">
+            <div class="insight-label">Income recorded</div>
+            <div class="insight-value">{{ display_symbol }} {{ month_income|floatformat:2 }}</div>
+            <div class="insight-note">{{ month_transaction_count }} entries this month</div>
+        </article>
+        <article class="insight-card">
+            <div class="insight-label">Expenses</div>
+            <div class="insight-value">{{ display_symbol }} {{ month_expenses|floatformat:2 }}</div>
+            <div class="insight-note">Excludes transfers recorded as savings</div>
+        </article>
+        <article class="insight-card">
+            <div class="insight-label">Savings recorded</div>
+            <div class="insight-value">{{ display_symbol }} {{ month_savings|floatformat:2 }}</div>
+            <div class="insight-note">{{ savings_rate|floatformat:1 }}% of recorded income</div>
+        </article>
+        <article class="insight-card">
+            <div class="insight-label">Available after entries</div>
+            <div class="insight-value">{{ display_symbol }} {{ remaining|floatformat:2 }}</div>
+            <div class="insight-note">Income minus expenses and savings entries</div>
+        </article>
+    </section>
+
+    <section class="insight-panels">
+        <article class="insight-panel">
+            <h3>Six-month cash flow</h3>
+            <p class="insight-panel-subtitle">Compare your recorded income, expenses, and savings by month.</p>
+            <div class="chart-wrap"><canvas id="cashFlowChart" aria-label="Six-month cash flow chart"></canvas></div>
+        </article>
+        <article class="insight-panel">
+            <h3>Suggestions and insights</h3>
+            <p class="insight-panel-subtitle">Practical prompts based on the entries you’ve recorded.</p>
+            <div class="recommendation-list">
+                {% for item in recommendations %}
+                <div class="recommendation {{ item.tone }}">
+                    <div class="recommendation-header"><i class="bi {{ item.icon }}"></i>{{ item.title }}</div>
+                    <p>{{ item.detail }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            <p class="small text-secondary mt-3 mb-0">These are budgeting prompts based on your entries, not financial advice.</p>
+        </article>
+    </section>
+
+    <section class="insight-panels">
+        <article class="insight-panel">
+            <h3>Where your expenses go</h3>
+            <p class="insight-panel-subtitle">This month’s recorded spending by category.</p>
+            {% if category_breakdown %}
+            <div class="category-list">
+                {% for item in category_breakdown %}
+                <div class="category-row">
+                    <span class="category-name">{{ item.name }}</span>
+                    <span class="category-meter" role="img" aria-label="{{ item.percentage|floatformat:0 }} percent of expenses"><span style="width:{{ item.percentage|floatformat:0 }}%"></span></span>
+                    <span class="category-amount">{{ display_symbol }} {{ item.amount|floatformat:2 }} · {{ item.percentage|floatformat:0 }}%</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">No expenses recorded this month yet.</div>
+            {% endif %}
+        </article>
+        <article class="insight-panel">
+            <div class="d-flex justify-content-between align-items-start gap-2">
+                <div>
+                    <h3>Month-over-month</h3>
+                    <p class="insight-panel-subtitle">Compared with {{ previous_month_label }}.</p>
+                </div>
+                {% if expense_change != None %}
+                <span class="badge {% if expense_change > 0 %}text-bg-warning{% else %}text-bg-success{% endif %}">
+                    {% if expense_change > 0 %}+{% endif %}{{ expense_change|floatformat:0 }}%
+                </span>
+                {% endif %}
+            </div>
+            <div class="category-list">
+                <div class="category-row"><span class="category-name">Income</span><span></span><span class="category-amount">{{ display_symbol }} {{ previous_income|floatformat:2 }}</span></div>
+                <div class="category-row"><span class="category-name">Expenses</span><span></span><span class="category-amount">{{ display_symbol }} {{ previous_expenses|floatformat:2 }}</span></div>
+                <div class="category-row"><span class="category-name">Savings</span><span></span><span class="category-amount">{{ display_symbol }} {{ previous_savings|floatformat:2 }}</span></div>
+            </div>
+            {% if expense_change == None %}<div class="empty-state">Record expenses in a previous month to see a comparison.</div>{% endif %}
+        </article>
+    </section>
+
+    <section class="insight-panel mb-4">
+        <div class="d-flex justify-content-between align-items-baseline gap-2 mb-2">
+            <h3>Recent transactions</h3>
+            <span class="small text-secondary">{{ transaction_count }} total in {{ display_currency }}</span>
+        </div>
+        {% if recent_transactions %}
+        <div class="table-responsive">
+            <table class="table table-hover transactions-table">
+                <thead><tr><th>Category</th><th>Description</th><th>Date</th><th class="text-end">Amount</th></tr></thead>
+                <tbody>
+                    {% for entry in recent_transactions %}
+                    <tr>
+                        <td>{{ entry.category }}</td>
+                        <td>{{ entry.description|default:entry.subcategory|default:"No description" }}</td>
+                        <td>{{ entry.created_at|date:"M j, Y" }}</td>
+                        <td class="text-end fw-semibold">{% if entry.category == 'Income' %}+{% elif entry.category == 'Savings' %}↗{% else %}−{% endif %} {{ display_symbol }} {{ entry.amount|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">No {{ display_currency }} transactions yet. Add entries in the Financial Planner to see your insights.</div>
+        {% endif %}
+    </section>
+</div>
+{{ trend_labels|json_script:"financeTrendLabels" }}
+{{ trend_income|json_script:"financeTrendIncome" }}
+{{ trend_expenses|json_script:"financeTrendExpenses" }}
+{{ trend_savings|json_script:"financeTrendSavings" }}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const trendLabels = JSON.parse(document.getElementById('financeTrendLabels').textContent);
+    const chart = document.getElementById('cashFlowChart');
+    if (chart && window.Chart) {
+        new Chart(chart, {
+            type: 'bar',
+            data: {
+                labels: trendLabels,
+                datasets: [
+                    { label: 'Income', data: JSON.parse(document.getElementById('financeTrendIncome').textContent), backgroundColor: '#16815f' },
+                    { label: 'Expenses', data: JSON.parse(document.getElementById('financeTrendExpenses').textContent), backgroundColor: '#ce6654' },
+                    { label: 'Savings', data: JSON.parse(document.getElementById('financeTrendSavings').textContent), backgroundColor: '#458b98' }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: { y: { beginAtZero: true, ticks: { callback: value => `{{ display_symbol }} ${value}` } } }
+            }
+        });
+    }
+</script>
+{% endblock %}

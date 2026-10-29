@@ -50,6 +50,11 @@
                 </a>
             </li>
             <li class="nav-item">
+                <a href="{% url 'wellness:financial_insights' %}" class="nav-link {% if active_nav == 'financial_insights' %}active{% endif %}">
+                    <i class="bi bi-graph-up-arrow"></i> <span>Financial Insights</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a href="{% url 'wellness:relationships' %}" class="nav-link {% if active_nav == 'relationships' %}active{% endif %}">
                     <i class="bi bi-hearts"></i> <span>Relationships</span>
                 </a>
@@ -130,6 +135,9 @@
     </div>
 
     <div class="sidebar-footer">
+        <div class="small text-center text-secondary mb-2" title="Dashboard data refreshes from the shared database every 30 seconds when the page is idle">
+            <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i>Shared data · auto-sync
+        </div>
         <div class="sidebar-user">
             <div class="sidebar-avatar">
                 {% if user.avatar_display_url %}

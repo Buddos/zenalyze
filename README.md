@@ -182,6 +182,10 @@ Visit **http://localhost:8000** 🎉
 
 
 
+## Shared account data and dashboard refresh
+
+Dashboard pages read their current data from the configured database on each request. To see the same account data across Vercel and other devices, configure them to use the same Supabase `DATABASE_URL`. Open dashboard pages refresh from that database every 30 seconds when idle; refresh is deferred while a form has unsaved edits, media is playing, a modal is open, or an embedded assistant is active.
+
 ## ▶️ Running the Application
 
 ```bash

@@ -173,7 +173,7 @@
 {% endblock %}
 
 {% block dashboard_content %}
-<!-- Hero Bar with Zen AI Identity & Launch Controls -->
+<!-- Hero Bar with Zen AI Identity & Controls -->
 <div class="ai-hero-card">
     <div class="d-flex align-items-center gap-3">
         <div style="width: 46px; height: 46px; border-radius: 12px; background: linear-gradient(135deg, #667eea, #764ba2); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; box-shadow: 0 4px 14px rgba(102,126,234,0.35);">
@@ -197,9 +197,6 @@
         <button class="btn btn-sm btn-outline-primary" id="fullscreenToggleBtn" onclick="toggleFullscreenAi()" title="Expand Fullscreen" style="border-radius: 10px; padding: 0.45rem 0.85rem;">
             <i class="bi bi-arrows-fullscreen me-1"></i> Fullscreen
         </button>
-        <a href="https://zen-ai-34.lovable.app" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-primary" title="Launch in New Tab" style="border-radius: 10px; padding: 0.45rem 1rem;">
-            <i class="bi bi-box-arrow-up-right me-1"></i> Pop Out
-        </a>
     </div>
 </div>
 
@@ -242,9 +239,6 @@
         <div class="ai-loader-ring"></div>
         <h6 class="fw-bold mb-1 text-primary">Connecting to Zen AI...</h6>
         <p class="text-secondary small mb-3">Initializing your secure conversational assistant</p>
-        <a href="https://zen-ai-34.lovable.app" target="_blank" class="btn btn-sm btn-outline-primary" style="border-radius: 8px; font-size: 0.75rem;">
-            Click here if taking longer than expected
-        </a>
     </div>
 
     <!-- The Lovable AI Chatbot Interface -->
@@ -253,7 +247,7 @@
         class="ai-iframe-element" 
         id="aiCompanionFrame"
         allow="microphone; camera; clipboard-read; clipboard-write; autoplay; fullscreen"
-        sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals allow-downloads allow-popups-to-escape-sandbox"
+        sandbox="allow-same-origin allow-scripts allow-forms allow-modals allow-downloads"
         onload="onAiFrameLoaded()">
     </iframe>
 </div>

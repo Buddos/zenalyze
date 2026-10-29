@@ -78,6 +78,25 @@ class LoginCSRFTests(TestCase):
         self.assertFalse(User.objects.filter(username='csrf-register-test').exists())
 
 
+class AccountRegistrationTests(TestCase):
+    def test_successful_registration_confirms_account_creation(self):
+        response = self.client.post(reverse('accounts:register'), {
+            'username': 'signup-confirmation-test',
+            'email': 'signup-confirmation@example.test',
+            'full_name': 'Signup Confirmation',
+            'password': 'safe-test-pass-123',
+            'confirm_password': 'safe-test-pass-123',
+        }, follow=True)
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Account created successfully!')
+        user = User.objects.get(username='signup-confirmation-test')
+        self.assertEqual(user.email, 'signup-confirmation@example.test')
+        self.assertTrue(user.check_password('safe-test-pass-123'))
+        self.assertTrue(UserSettings.objects.filter(user=user).exists())
+        self.assertEqual(str(user.pk), self.client.session['_auth_user_id'])
+
+
 class ProfileAvatarUploadTests(TestCase):
     def setUp(self):
         self.user = User.objects.create_user(

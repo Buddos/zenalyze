@@ -198,7 +198,10 @@ def register_view(request):
                 ip_address=request.META.get('REMOTE_ADDR')
             )
             
-            messages.success(request, "Account created successfully! Welcome to Zenalyze.")
+            messages.success(
+                request,
+                "Account created successfully! You are now signed in and ready to use Zenalyze.",
+            )
             return redirect('wellness:dashboard')
             
     return render(request, 'accounts/register.html')
@@ -605,4 +608,3 @@ def google_oauth_callback(request):
 
     next_url = request.session.pop('google_oauth_next', '/dashboard/')
     return redirect(next_url)
-

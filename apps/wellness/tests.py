@@ -1,8 +1,10 @@
 from decimal import Decimal
+from datetime import datetime, timedelta
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from .models import FinancialEntry
 
@@ -95,6 +97,75 @@ class FinancialPlannerTests(TestCase):
         self.assertEqual(response.context['total_income'], Decimal('0'))
         self.assertEqual(response.context['total_expense'], Decimal('10.00'))
         self.assertEqual(response.context['net_balance'], Decimal('-10.00'))
+
+    def test_savings_are_separate_from_expenses_in_planner_totals(self):
+        FinancialEntry.objects.create(
+            user=self.user,
+            amount=Decimal('100.00'),
+            category='Income',
+            currency='KES',
+        )
+        FinancialEntry.objects.create(
+            user=self.user,
+            amount=Decimal('30.00'),
+            category='Food',
+            currency='KES',
+        )
+        FinancialEntry.objects.create(
+            user=self.user,
+            amount=Decimal('20.00'),
+            category='Savings',
+            currency='KES',
+        )
+
+        response = self.client.get(reverse('wellness:financial'))
+
+        self.assertEqual(response.context['total_expense'], Decimal('30.00'))
+        self.assertEqual(response.context['total_savings'], Decimal('20.00'))
+        self.assertEqual(response.context['net_balance'], Decimal('50.00'))
+
+    def test_financial_insights_analyze_user_transactions_and_savings(self):
+        today = timezone.localdate()
+        previous_month = today.replace(day=1) - timedelta(days=1)
+        FinancialEntry.objects.create(
+            user=self.user,
+            amount=Decimal('1000.00'),
+            category='Income',
+            currency='KES',
+        )
+        FinancialEntry.objects.create(
+            user=self.user,
+            amount=Decimal('350.00'),
+            category='Housing',
+            currency='KES',
+        )
+        FinancialEntry.objects.create(
+            user=self.user,
+            amount=Decimal('150.00'),
+            category='Savings',
+            currency='KES',
+        )
+        old_expense = FinancialEntry.objects.create(
+            user=self.user,
+            amount=Decimal('200.00'),
+            category='Food',
+            currency='KES',
+        )
+        old_expense.created_at = timezone.make_aware(
+            datetime(previous_month.year, previous_month.month, 15, 12, 0)
+        )
+        old_expense.save(update_fields=['created_at'])
+
+        response = self.client.get(reverse('wellness:financial_insights'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['month_income'], Decimal('1000.00'))
+        self.assertEqual(response.context['month_expenses'], Decimal('350.00'))
+        self.assertEqual(response.context['month_savings'], Decimal('150.00'))
+        self.assertEqual(response.context['remaining'], Decimal('500.00'))
+        self.assertEqual(response.context['previous_expenses'], Decimal('200.00'))
+        self.assertContains(response, 'Financial Insights')
+        self.assertContains(response, 'Six-month cash flow')
 
     def test_delete_button_removes_owned_transaction_and_keeps_currency(self):
         entry = FinancialEntry.objects.create(
