@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title">
+  <title id="title">A gentle yoga flow at sunrise</title>
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1">
+      <stop stop-color="#f4ddce"/>
+      <stop offset="1" stop-color="#e9c8b7"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="420" rx="28" fill="url(#sky)"/>
+  <circle cx="743" cy="106" r="51" fill="#efa978" opacity=".85"/>
+  <path d="M0 277 188 153l153 129 174-133 184 142 122-92 139 89v132H0Z" fill="#b09b9a"/>
+  <path d="M0 335q220-62 470 2t490-8v91H0Z" fill="#789789"/>
+  <ellipse cx="470" cy="360" rx="174" ry="17" fill="#47675c" opacity=".35"/>
+  <circle cx="482" cy="190" r="20" fill="#c98668"/>
+  <path d="M462 188q4-28 22-28t20 28q-10-9-20-9t-22 9Z" fill="#493c4b"/>
+  <path d="M467 211q-25 43-18 91l-99 54m122-145q41 16 76 52l83 3m-182 4q48 31 102 30l64 29" fill="none" stroke="#a9574f" stroke-width="17" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="m350 354-39 5m321-94 38-3m-116 108 42 13" fill="none" stroke="#a9574f" stroke-width="15" stroke-linecap="round"/>
+  <path d="M142 330v-77m-23 30 23-26 23 26m572 52v-92m-24 33 24-29 23 29" fill="none" stroke="#426859" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

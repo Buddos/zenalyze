@@ -1,0 +1,67 @@
+{% if google_client_id %}
+<div class="google-signin">
+    <div id="googleSignInButton"></div>
+    <div id="googleSignInError" class="alert alert-danger py-2 small mt-2" role="alert" hidden></div>
+</div>
+<script>
+    function showGoogleSignInError(message) {
+        const errorElement = document.getElementById('googleSignInError');
+        errorElement.textContent = message;
+        errorElement.hidden = false;
+    }
+
+    function handleGoogleCredential(response) {
+        const csrfCookie = document.cookie
+            .split('; ')
+            .find((cookie) => cookie.startsWith('csrftoken='));
+        const csrfToken = csrfCookie ? decodeURIComponent(csrfCookie.split('=')[1]) : '';
+
+        fetch("{% url 'accounts:google_auth' %}", {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ credential: response.credential })
+        })
+            .then(async (result) => {
+                const data = await result.json();
+                if (!result.ok || data.status !== 'ok') {
+                    throw new Error(data.message || 'Google sign-in failed. Please try again.');
+                }
+                window.location.assign(data.redirect || '/dashboard/');
+            })
+            .catch((error) => {
+                showGoogleSignInError(error.message);
+            });
+    }
+
+    function initializeGoogleSignIn() {
+        if (!window.google || !window.google.accounts || !window.google.accounts.id) {
+            showGoogleSignInError('Google sign-in could not load. Check your connection and try again.');
+            return;
+        }
+        const button = document.getElementById('googleSignInButton');
+        window.google.accounts.id.initialize({
+            client_id: '{{ google_client_id|escapejs }}',
+            callback: handleGoogleCredential,
+            auto_select: false
+        });
+        window.google.accounts.id.renderButton(button, {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text: '{{ button_text|escapejs }}',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: Math.min(button.clientWidth, 400)
+        });
+    }
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="initializeGoogleSignIn()"></script>
+{% else %}
+<div class="alert alert-warning small mt-3" role="status">
+    Google sign-in is not configured for this deployment.
+</div>
+{% endif %}

@@ -138,6 +138,7 @@
 {% endblock %}
 
 {% block dashboard_content %}
+<div id="financialPageRoot">
 <div class="container-fluid financial-page">
     <header class="planner-heading">
         <div>
@@ -146,9 +147,9 @@
             <p>Track the flow, notice patterns, and plan your next step.</p>
         </div>
         <div class="planner-actions">
-            <form method="GET" class="d-flex align-items-center gap-2" aria-label="Choose display currency">
+            <form method="GET" class="d-flex align-items-center gap-2" aria-label="Choose display currency" data-background-update>
                 <label for="displayCurrency" class="small fw-semibold text-secondary mb-0">Currency</label>
-                <select id="displayCurrency" name="currency" class="form-select form-select-sm" onchange="this.form.submit()">
+                <select id="displayCurrency" name="currency" class="form-select form-select-sm" onchange="this.form.requestSubmit()">
                     <option value="KES" {% if display_currency == 'KES' %}selected{% endif %}>KES · KSh</option>
                     <option value="USD" {% if display_currency == 'USD' %}selected{% endif %}>USD · $</option>
                     <option value="EUR" {% if display_currency == 'EUR' %}selected{% endif %}>EUR · €</option>
@@ -234,7 +235,7 @@
                         <td class="text-end"><span class="transaction-amount {% if item.category == 'Income' %}income{% else %}expense{% endif %}">{% if item.category == 'Income' %}+{% else %}−{% endif %} {{ display_symbol }} {{ item.amount|floatformat:2 }}</span></td>
                         <td><span class="transaction-date">{{ item.created_at|date:"M j, Y" }}</span></td>
                         <td class="text-end">
-                            <form method="POST" action="{% url 'wellness:financial_delete' item.id %}">
+                            <form method="POST" action="{% url 'wellness:financial_delete' item.id %}" data-background-update>
                                 {% csrf_token %}
                                 <input type="hidden" name="currency" value="{{ display_currency }}">
                                 <button type="submit" class="transaction-delete" aria-label="Delete {{ item.category }} transaction" title="Delete transaction"><i class="bi bi-trash3" aria-hidden="true"></i></button>
@@ -265,7 +266,7 @@
                 <div><div class="planner-kicker">New ledger entry</div><h5 class="modal-title fw-bold mt-1" style="color: var(--text-primary);">Add transaction</h5></div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form method="POST" action="{% url 'wellness:financial' %}">
+            <form method="POST" action="{% url 'wellness:financial' %}" data-background-update>
                 {% csrf_token %}
                 <input type="hidden" name="action" value="create_entry">
                 <div class="modal-body py-3">
@@ -309,15 +310,20 @@
         </div>
     </div>
 </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    const categories = JSON.parse(document.getElementById('spendingCategories').textContent);
-    const values = JSON.parse(document.getElementById('spendingValues').textContent);
-    const chartCanvas = document.getElementById('spendingChart');
-    if (chartCanvas && window.Chart && categories.length) {
-        new Chart(chartCanvas, {
+    window.refreshFinancialPlannerChart = function () {
+        const chartCanvas = document.getElementById('spendingChart');
+        if (!chartCanvas || !window.Chart) return;
+        const existingChart = Chart.getChart(chartCanvas);
+        if (existingChart) existingChart.destroy();
+
+        const categories = JSON.parse(document.getElementById('spendingCategories').textContent);
+        const values = JSON.parse(document.getElementById('spendingValues').textContent);
+        if (categories.length) new Chart(chartCanvas, {
             type: 'doughnut',
             data: {
                 labels: categories,
@@ -338,6 +344,7 @@
                 },
             },
         });
-    }
+    };
+    window.refreshFinancialPlannerChart();
 </script>
 {% endblock %}

@@ -6,10 +6,54 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from .models import FinancialEntry
+from .models import Exercise, FinancialEntry
+from apps.community.models import MediaAsset
 
 
 User = get_user_model()
+
+
+class PracticeMediaRenderingTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='practice-media-user',
+            email='practice-media@example.test',
+            password='safe-test-pass-123',
+        )
+        self.client.force_login(self.user)
+
+    def test_video_practice_renders_playback_controls_and_thumbnail(self):
+        asset = MediaAsset.objects.create(
+            asset_type='video',
+            file='uploads/exercises/videos/meditation.mp4',
+            thumbnail='uploads/exercises/thumbnails/meditation.jpg',
+            processing_status='ready',
+        )
+        Exercise.objects.create(
+            title='Guided meditation video',
+            category='meditation',
+            media_asset=asset,
+            status='published',
+        )
+
+        response = self.client.get(reverse('wellness:exercises'))
+
+        self.assertContains(response, 'controls preload="metadata" playsinline')
+        self.assertContains(response, '/media/uploads/exercises/videos/meditation.mp4')
+        self.assertContains(response, '/media/uploads/exercises/thumbnails/meditation.jpg')
+
+    def test_practice_without_a_thumbnail_uses_local_category_artwork(self):
+        Exercise.objects.create(
+            title='Quiet meditation',
+            category='meditation',
+            is_guided=True,
+            status='published',
+        )
+
+        response = self.client.get(reverse('wellness:exercises'))
+
+        self.assertContains(response, '/static/images/practices/meditation.svg')
+        self.assertContains(response, 'data-fallback="/static/images/practices/meditation.svg"')
 
 
 class FinancialPlannerTests(TestCase):

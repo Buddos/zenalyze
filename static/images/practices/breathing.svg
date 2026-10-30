@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title">
+  <title id="title">Calm breathing beside a quiet lake</title>
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1">
+      <stop stop-color="#d5e9f2"/>
+      <stop offset="1" stop-color="#f4e7d2"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="420" rx="28" fill="url(#sky)"/>
+  <circle cx="745" cy="105" r="48" fill="#f4c38a"/>
+  <path d="M0 260 172 149l177 125 178-136 190 139 112-79 131 93v129H0Z" fill="#9dbdb5"/>
+  <path d="M0 307q200-48 402 0t558-8v121H0Z" fill="#76a9a4"/>
+  <path d="M0 345q240-30 480 1t480-4" fill="none" stroke="#c6e4dc" stroke-width="9" opacity=".8"/>
+  <circle cx="480" cy="218" r="68" fill="none" stroke="#fff" stroke-width="3" opacity=".55"/>
+  <circle cx="480" cy="218" r="48" fill="none" stroke="#fff" stroke-width="3" opacity=".8"/>
+  <path d="M455 290q-8-43 9-67 16-22 34-22t34 22q17 24 9 67l-23 13h-40Z" fill="#365e5b"/>
+  <circle cx="481" cy="193" r="19" fill="#c98768"/>
+  <path d="M462 191q4-27 21-27t20 27q-10-9-20-9t-21 9Z" fill="#493c4b"/>
+  <path d="M443 312q-26 10-48 1m171 0q26 10 48 1" fill="none" stroke="#365e5b" stroke-width="12" stroke-linecap="round"/>
+</svg>

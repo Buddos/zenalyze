@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="title">
+  <title id="title">A quiet meditation at sunrise</title>
+  <defs>
+    <linearGradient id="sky" x2="0" y2="1">
+      <stop stop-color="#d8e9f5"/>
+      <stop offset="1" stop-color="#f8e4cf"/>
+    </linearGradient>
+    <linearGradient id="ground" x2="0" y2="1">
+      <stop stop-color="#9fc6b4"/>
+      <stop offset="1" stop-color="#587e72"/>
+    </linearGradient>
+  </defs>
+  <rect width="960" height="420" rx="28" fill="url(#sky)"/>
+  <circle cx="744" cy="112" r="52" fill="#f3bd83" opacity=".9"/>
+  <path d="M0 282 178 165l154 117 142-88 196 132 151-101 139 70v125H0Z" fill="#a5bec0" opacity=".72"/>
+  <path d="m0 326 207-105 177 102 171-116 208 136 112-69 85 48v98H0Z" fill="#87a9a0"/>
+  <path d="M0 342q220-70 440 0t520-4v82H0Z" fill="url(#ground)"/>
+  <ellipse cx="474" cy="357" rx="116" ry="17" fill="#45685d" opacity=".35"/>
+  <path d="M419 332q-10-49 14-83 20-29 43-29t43 29q24 34 14 83l-29 15h-55Z" fill="#365d58"/>
+  <circle cx="476" cy="206" r="24" fill="#c98668"/>
+  <path d="M451 204q4-34 28-34 23 0 27 34-13-12-27-12t-28 12Z" fill="#493c4b"/>
+  <path d="M412 348q-31 13-54 2m213 0q31 13 54 2" fill="none" stroke="#365d58" stroke-width="14" stroke-linecap="round"/>
+  <path d="M450 357q26 20 52 0m-71 8q18 17 45 4m30-4q-18 17-45 4" fill="none" stroke="#f4d6b8" stroke-width="5" stroke-linecap="round"/>
+</svg>

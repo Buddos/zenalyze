@@ -33,6 +33,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     
     <style>
+        @view-transition { navigation: auto; }
+        ::view-transition-old(root),
+        ::view-transition-new(root) {
+            animation-duration: 160ms;
+        }
+
         {{ theme_css|safe }}
 
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -342,7 +348,9 @@
             .hamburger { display: flex; }
         }
     </style>
+    <!-- dashboard-page-styles:start -->
     {% block extra_css %}{% endblock %}
+    <!-- dashboard-page-styles:end -->
 </head>
 <body>
     <div class="dashboard-wrapper">
@@ -355,16 +363,16 @@
             {% include 'includes/topbar.html' %}
 
             <!-- Django Messages / Alerts -->
+            <div id="pageMessages" class="mb-4" aria-live="polite">
             {% if messages %}
-            <div class="mb-4">
                 {% for message in messages %}
                 <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show shadow-sm" role="alert">
                     {{ message }}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
                 {% endfor %}
-            </div>
             {% endif %}
+            </div>
 
             <!-- Dashboard Content -->
             {% block dashboard_content %}
@@ -377,78 +385,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        (() => {
-            const refreshInterval = 30_000;
-            const deferInterval = 5_000;
-            let lastActivity = Date.now();
-
-            const markActivity = () => {
-                lastActivity = Date.now();
-            };
-            const hasUnsavedFormChanges = () => Array.from(document.forms).some(form => form.dataset.hasChanges === 'true');
-            const canRefreshSafely = () => {
-                const active = document.activeElement;
-                const activeField = active && active.matches('input, textarea, select, [contenteditable="true"]');
-                const playingMedia = Array.from(document.querySelectorAll('audio, video')).some(media => !media.paused && !media.ended);
-                const activeEmbeddedApp = active && active.tagName === 'IFRAME' && active.src !== 'about:blank';
-                const floatingAssistantOpen = document.getElementById('floatingAiDrawer')?.classList.contains('is-open');
-                const modalOpen = document.querySelector('.modal.show');
-                return document.visibilityState === 'visible'
-                    && Date.now() - lastActivity >= refreshInterval
-                    && !activeField
-                    && !activeEmbeddedApp
-                    && !playingMedia
-                    && !hasUnsavedFormChanges()
-                    && !floatingAssistantOpen
-                    && !modalOpen
-                    && !document.getElementById('aiCompanionFrame');
-            };
-
-            document.addEventListener('input', event => {
-                const form = event.target.form;
-                if (form) form.dataset.hasChanges = 'true';
-                markActivity();
-            });
-            document.addEventListener('change', event => {
-                const form = event.target.form;
-                if (form) form.dataset.hasChanges = 'true';
-                markActivity();
-            });
-            document.addEventListener('submit', event => {
-                event.target.dataset.hasChanges = 'false';
-                markActivity();
-            });
-            ['pointerdown', 'keydown', 'touchstart'].forEach(eventName => {
-                document.addEventListener(eventName, markActivity, { passive: true });
-            });
-
-            const refreshWhenIdle = () => {
-                if (canRefreshSafely()) {
-                    try {
-                        sessionStorage.setItem('zenalyze-dashboard-scroll', String(window.scrollY));
-                    } catch (error) {
-                        // Refresh still works if browser storage is unavailable.
-                    }
-                    window.location.reload();
-                    return;
-                }
-                window.setTimeout(refreshWhenIdle, deferInterval);
-            };
-
-            window.setTimeout(() => {
-                try {
-                    const savedScroll = sessionStorage.getItem('zenalyze-dashboard-scroll');
-                    if (savedScroll !== null) {
-                        sessionStorage.removeItem('zenalyze-dashboard-scroll');
-                        window.scrollTo(0, Number(savedScroll));
-                    }
-                } catch (error) {
-                    // Ignore unavailable browser storage.
-                }
-                refreshWhenIdle();
-            }, refreshInterval);
-        })();
-
         function toggleSidebar() {
             document.getElementById('sidebar').classList.toggle('show');
             document.getElementById('sidebarOverlay').classList.toggle('show');
@@ -630,6 +566,9 @@
         }
     </script>
     {% include 'includes/floating_ai_widget.html' %}
+    <script src="{% static 'js/soft-navigation.js' %}"></script>
+    <!-- dashboard-page-scripts:start -->
     {% block extra_js %}{% endblock %}
+    <!-- dashboard-page-scripts:end -->
 </body>
 </html>

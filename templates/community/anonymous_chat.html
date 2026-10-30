@@ -628,13 +628,15 @@
     const sessionCode = '{{ active_session.session_code }}';
     let lastAnonMsgId = 0;
     let anonPollTimer = null;
+    let searchTimer = null;
+    let matchTransitionInProgress = false;
     let peerConnected = {% if active_session.participant2 %}true{% else %}false{% endif %};
     let secondsElapsed = 0;
 
     // Searching timer for waiting screen
     const searchTimerEl = document.getElementById('searchTimer');
     if (searchTimerEl) {
-        setInterval(() => {
+        searchTimer = setInterval(() => {
             secondsElapsed++;
             const mins = Math.floor(secondsElapsed / 60);
             const secs = (secondsElapsed % 60).toString().padStart(2, '0');
@@ -648,8 +650,8 @@
         if (id > lastAnonMsgId) lastAnonMsgId = id;
     });
 
-    const anonBox = document.getElementById('anonChatMsgs');
-    const anonInput = document.getElementById('anonInput');
+    let anonBox = document.getElementById('anonChatMsgs');
+    let anonInput = document.getElementById('anonInput');
 
     function scrollAnonToBottom(smooth = false) {
         if (anonBox) {
@@ -787,10 +789,7 @@
 
             // Detection when peer joins while on radar waiting screen
             if (data.has_peer && !peerConnected) {
-                peerConnected = true;
-                playMatchChime();
-                // Reload page to transition smoothly from Radar Waiting state to In-Session Active state
-                window.location.reload();
+                showMatchedChatWithoutReload();
                 return;
             }
 
@@ -811,6 +810,45 @@
         if (anonInput) anonInput.disabled = true;
         const btn = document.getElementById('anonSendBtn');
         if (btn) btn.disabled = true;
+    }
+
+    async function showMatchedChatWithoutReload() {
+        if (matchTransitionInProgress || peerConnected) return;
+        matchTransitionInProgress = true;
+
+        try {
+            const response = await fetch(window.location.href, {
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            if (!response.ok) {
+                throw new Error(`Could not load the matched chat (HTTP ${response.status}).`);
+            }
+
+            const page = new DOMParser().parseFromString(await response.text(), 'text/html');
+            const matchedChat = page.querySelector('#activeChatBox');
+            const waitingCard = document.querySelector('.radar-search-card');
+            if (!matchedChat || !waitingCard) {
+                throw new Error('The matched chat view was not available.');
+            }
+
+            waitingCard.replaceWith(matchedChat);
+            anonBox = document.getElementById('anonChatMsgs');
+            anonInput = document.getElementById('anonInput');
+            document.querySelectorAll('.anon-msg-row[data-id]').forEach((element) => {
+                const id = Number.parseInt(element.getAttribute('data-id'), 10);
+                if (id > lastAnonMsgId) lastAnonMsgId = id;
+            });
+            if (searchTimer) clearInterval(searchTimer);
+            peerConnected = true;
+            playMatchChime();
+            scrollAnonToBottom();
+        } catch (error) {
+            console.warn('Matched chat background sync failed; it will retry.', error);
+        } finally {
+            matchTransitionInProgress = false;
+        }
     }
 
     // Poll every 2.5 seconds

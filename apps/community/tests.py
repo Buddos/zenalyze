@@ -9,7 +9,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from apps.administration.models import ContentModeration
 from apps.wellness.models import Exercise, UserExerciseSession
 
-from .models import CommunityPost, MediaAsset, PostMedia
+from .models import AnonymousChatSession, CommunityPost, MediaAsset, PostMedia
 
 
 User = get_user_model()
@@ -146,3 +146,37 @@ class PublishedPracticeTests(TestCase):
         )
         self.assertTrue(at_threshold.json()['completed'])
         self.assertTrue(UserExerciseSession.objects.get(id=session_id).completed)
+
+
+class AnonymousPeerSyncTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='anonymous-peer-one',
+            email='anonymous-peer-one@example.test',
+            password='safe-test-pass-123',
+        )
+        self.peer = User.objects.create_user(
+            username='anonymous-peer-two',
+            email='anonymous-peer-two@example.test',
+            password='safe-test-pass-123',
+        )
+        self.session = AnonymousChatSession.objects.create(
+            session_code='SYNC42',
+            participant1=self.user,
+            topic='Anxiety & Panic',
+        )
+        self.client.force_login(self.user)
+
+    def test_waiting_page_has_background_match_transition_without_page_reload(self):
+        response = self.client.get(reverse('community:anonymous_chat'))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'showMatchedChatWithoutReload();')
+        self.assertNotContains(response, 'window.location.reload()')
+
+        self.session.participant2 = self.peer
+        self.session.status = 'active'
+        self.session.save(update_fields=['participant2', 'status'])
+
+        matched_page = self.client.get(reverse('community:anonymous_chat'))
+        self.assertContains(matched_page, 'id="activeChatBox"')

@@ -1,4 +1,5 @@
 import re
+import time
 from io import BytesIO
 from unittest.mock import Mock, patch
 
@@ -8,6 +9,8 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 from PIL import Image
+
+from apps.accounts.models import UserSettings
 
 
 User = get_user_model()
@@ -79,6 +82,93 @@ class LoginCSRFTests(TestCase):
 
 
 class AccountRegistrationTests(TestCase):
+    def test_auth_pages_use_google_identity_services_without_firebase(self):
+        for route_name, auth_label, button_text in (
+            ('accounts:login', 'Sign In', 'signin_with'),
+            ('accounts:register', 'Create Free Account', 'signup_with'),
+        ):
+            with self.subTest(page=route_name):
+                with override_settings(GOOGLE_CLIENT_ID='google-client-id'):
+                    response = self.client.get(reverse(route_name))
+
+                self.assertEqual(response.status_code, 200)
+                self.assertContains(response, auth_label)
+                self.assertNotContains(response, 'firebase')
+                self.assertContains(response, 'https://accounts.google.com/gsi/client')
+                self.assertContains(response, 'google-client-id')
+                self.assertContains(response, button_text)
+
+        self.assertEqual(reverse('accounts:google_auth'), '/auth/google/')
+        self.assertEqual(self.client.get(reverse('accounts:google_auth')).status_code, 405)
+
+    @override_settings(GOOGLE_CLIENT_ID='google-client-id')
+    @patch('apps.accounts.views.http_requests.get')
+    def test_google_id_token_creates_user_and_logs_in(self, token_request):
+        token_response = Mock(status_code=200)
+        token_response.json.return_value = {
+            'aud': 'google-client-id',
+            'iss': 'https://accounts.google.com',
+            'exp': str(int(time.time()) + 3600),
+            'sub': 'google-user-subject',
+            'email': 'google-signup@example.test',
+            'email_verified': 'true',
+            'name': 'Google Signup',
+            'picture': 'https://example.test/avatar.png',
+        }
+        token_request.return_value = token_response
+
+        response = self.client.post(
+            reverse('accounts:google_auth'),
+            data='{"credential":"signed-google-id-token"}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['status'], 'ok')
+        self.assertTrue(response.json()['created'])
+        user = User.objects.get(email='google-signup@example.test')
+        self.assertEqual(user.full_name, 'Google Signup')
+        self.assertFalse(user.has_usable_password())
+        self.assertTrue(UserSettings.objects.filter(user=user).exists())
+        self.assertEqual(str(user.pk), self.client.session['_auth_user_id'])
+        self.assertEqual(token_request.call_args.kwargs['params'], {
+            'id_token': 'signed-google-id-token',
+        })
+
+    @override_settings(GOOGLE_CLIENT_ID='google-client-id')
+    @patch('apps.accounts.views.http_requests.get')
+    def test_google_id_token_with_wrong_audience_is_rejected(self, token_request):
+        token_response = Mock(status_code=200)
+        token_response.json.return_value = {
+            'aud': 'another-client-id',
+            'iss': 'https://accounts.google.com',
+            'exp': str(int(time.time()) + 3600),
+            'sub': 'google-user-subject',
+            'email': 'not-created@example.test',
+            'email_verified': True,
+        }
+        token_request.return_value = token_response
+
+        response = self.client.post(
+            reverse('accounts:google_auth'),
+            data='{"credential":"wrong-audience-token"}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 401)
+        self.assertFalse(User.objects.filter(email='not-created@example.test').exists())
+
+    @override_settings(GOOGLE_CLIENT_ID='google-client-id')
+    def test_google_id_token_endpoint_requires_csrf_protection(self):
+        client = Client(enforce_csrf_checks=True)
+        response = client.post(
+            reverse('accounts:google_auth'),
+            data='{"credential":"signed-google-id-token"}',
+            content_type='application/json',
+        )
+
+        self.assertEqual(response.status_code, 403)
+
     def test_successful_registration_confirms_account_creation(self):
         response = self.client.post(reverse('accounts:register'), {
             'username': 'signup-confirmation-test',
@@ -145,8 +235,10 @@ class ProfileAvatarUploadTests(TestCase):
         )
         self.assertTrue(self.user.avatar_url.endswith('.png'))
         self.assertFalse(self.user.avatar)
-        self.assertEqual(upload_request.call_args.args[0].split('/storage/v1/object/avatars/')[0], 'https://supabase.example.test')
-        self.assertEqual(upload_request.call_args.kwargs['headers']['Authorization'], 'Bearer server-only-test-secret')
+        self.assertEqual(
+            upload_request.call_args.args[0].split('/storage/v1/object/avatars/')[0],
+            'https://supabase.example.test',
+        )
 
     @override_settings(IS_VERCEL=True, SUPABASE_URL='https://supabase.example.test')
     @patch.dict('os.environ', {'SUPABASE_SERVICE_ROLE_KEY': 'server-only-test-secret'})

@@ -4,16 +4,15 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt, ensure_csrf_cookie
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.cache import never_cache
 from django.middleware.csrf import rotate_token
 from django.views.csrf import csrf_failure as default_csrf_failure
 import json
 import logging
 import re
-import urllib.parse
-import secrets
 import os
+import time
 import uuid
 from io import BytesIO
 import requests as http_requests
@@ -23,12 +22,6 @@ from PIL import Image, UnidentifiedImageError
 from .models import User, UserSettings, UserActivityLog
 
 logger = logging.getLogger(__name__)
-
-# Firebase & Google OAuth2 settings
-FIREBASE_API_KEY     = getattr(settings, 'FIREBASE_API_KEY', os.environ.get('FIREBASE_API_KEY', 'AIzaSyDwdpQKLtsANsZhPVoqXZ2rjF4tghp-NpQ'))
-GOOGLE_CLIENT_ID     = os.environ.get('GOOGLE_CLIENT_ID', '')
-GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
-GOOGLE_REDIRECT_URI  = os.environ.get('GOOGLE_REDIRECT_URI', 'http://localhost:8000/auth/google/callback/')
 
 
 def _upload_avatar_to_supabase(upload, user_id):
@@ -136,7 +129,9 @@ def login_view(request):
         else:
             messages.error(request, "Invalid username or password. Please try again.")
             
-    return render(request, 'accounts/login.html')
+    return render(request, 'accounts/login.html', {
+        'google_client_id': settings.GOOGLE_CLIENT_ID,
+    })
 
 
 @never_cache
@@ -146,11 +141,13 @@ def csrf_failure_view(request, reason=''):
         rotate_token(request)
         return render(request, 'accounts/login.html', {
             'error': 'Your security token expired. Please try again.',
+            'google_client_id': settings.GOOGLE_CLIENT_ID,
         })
     if request.path_info == '/auth/register/':
         rotate_token(request)
         return render(request, 'accounts/register.html', {
             'errors': ['Your security token expired. Please try again.'],
+            'google_client_id': settings.GOOGLE_CLIENT_ID,
         })
     return default_csrf_failure(request, reason=reason)
 
@@ -204,7 +201,9 @@ def register_view(request):
             )
             return redirect('wellness:dashboard')
             
-    return render(request, 'accounts/register.html')
+    return render(request, 'accounts/register.html', {
+        'google_client_id': settings.GOOGLE_CLIENT_ID,
+    })
 
 def logout_view(request):
     if request.user.is_authenticated:
@@ -354,257 +353,112 @@ def update_theme_api(request):
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
 
 
-# ─── Firebase Google Authentication ───────────────────────────────────────────
+# ─── Google Identity Services ─────────────────────────────────────────────────
 
-@csrf_exempt
+
 def google_auth_view(request):
-    """Handles Google sign-in and sign-up via Firebase Auth.
-    Receives an ID token from the frontend Firebase JavaScript SDK,
-    verifies it with Google's Identity Toolkit, and logs the user in."""
+    """Verify a Google ID token and log the matching Django account in."""
     if request.method != 'POST':
-        return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
+        return JsonResponse({'status': 'error', 'message': 'Method not allowed.'}, status=405)
+    if not settings.GOOGLE_CLIENT_ID:
+        return JsonResponse({'status': 'error', 'message': 'Google sign-in is not configured.'}, status=503)
 
     try:
-        body = json.loads(request.body)
-        id_token = body.get('id_token', '').strip()
-    except (json.JSONDecodeError, AttributeError):
-        return JsonResponse({'status': 'error', 'message': 'Invalid request body'}, status=400)
+        payload = json.loads(request.body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid sign-in request.'}, status=400)
+    if not isinstance(payload, dict):
+        return JsonResponse({'status': 'error', 'message': 'Invalid sign-in request.'}, status=400)
 
-    if not id_token:
-        return JsonResponse({'status': 'error', 'message': 'No ID token provided'}, status=400)
+    credential = payload.get('credential', '')
+    if not isinstance(credential, str) or not credential or len(credential) > 8192:
+        return JsonResponse({'status': 'error', 'message': 'Google did not provide a valid credential.'}, status=400)
 
-    google_email = None
-    google_name = ''
-    google_picture = ''
-    email_verified = False
-
-    # 1. Verify token with Firebase Identity Toolkit
     try:
-        verify_url = f'https://identitytoolkit.googleapis.com/v1/accounts:lookup?key={FIREBASE_API_KEY}'
-        resp = http_requests.post(verify_url, json={'idToken': id_token}, timeout=10)
-        resp_data = resp.json()
+        token_response = http_requests.get(
+            'https://oauth2.googleapis.com/tokeninfo',
+            params={'id_token': credential},
+            timeout=10,
+        )
+        if token_response.status_code >= 500:
+            logger.warning('Google ID token verification service returned HTTP %s.', token_response.status_code)
+            return JsonResponse({'status': 'error', 'message': 'Google sign-in is temporarily unavailable.'}, status=503)
+        if token_response.status_code != 200:
+            return JsonResponse({'status': 'error', 'message': 'Google credential could not be verified.'}, status=401)
+        claims = token_response.json()
+    except http_requests.RequestException:
+        logger.warning('Could not reach Google ID token verification service.')
+        return JsonResponse({'status': 'error', 'message': 'Google sign-in is temporarily unavailable.'}, status=503)
+    except ValueError:
+        logger.warning('Google ID token verification returned invalid JSON.')
+        return JsonResponse({'status': 'error', 'message': 'Google returned an invalid sign-in response.'}, status=502)
 
-        if resp.status_code == 200 and 'users' in resp_data and len(resp_data['users']) > 0:
-            fb_user = resp_data['users'][0]
-            google_email = fb_user.get('email', '').lower().strip()
-            google_name = fb_user.get('displayName', '').strip()
-            google_picture = fb_user.get('photoUrl', '').strip()
-            email_verified = fb_user.get('emailVerified', False)
-    except Exception as exc:
-        pass
+    if not isinstance(claims, dict):
+        return JsonResponse({'status': 'error', 'message': 'Google returned an invalid sign-in response.'}, status=401)
 
-    # 2. Fallback: Google OAuth2 tokeninfo endpoint
+    try:
+        token_expiration = int(claims.get('exp', 0))
+    except (TypeError, ValueError):
+        token_expiration = 0
+
+    email_claim = claims.get('email')
+    if (
+        claims.get('aud') != settings.GOOGLE_CLIENT_ID
+        or claims.get('iss') not in ('accounts.google.com', 'https://accounts.google.com')
+        or token_expiration <= int(time.time())
+        or claims.get('email_verified') not in (True, 'true')
+        or not isinstance(claims.get('sub'), str)
+        or not isinstance(email_claim, str)
+    ):
+        return JsonResponse({'status': 'error', 'message': 'Google credential is invalid or expired.'}, status=401)
+
+    google_email = email_claim.strip().lower()
+    name_claim = claims.get('name', '')
+    google_name = name_claim.strip() if isinstance(name_claim, str) else ''
     if not google_email:
-        try:
-            tokeninfo_url = f'https://oauth2.googleapis.com/tokeninfo?id_token={id_token}'
-            resp = http_requests.get(tokeninfo_url, timeout=10)
-            if resp.status_code == 200:
-                t_data = resp.json()
-                google_email = t_data.get('email', '').lower().strip()
-                google_name = t_data.get('name', '').strip()
-                google_picture = t_data.get('picture', '').strip()
-                email_verified = t_data.get('email_verified', False) in (True, 'true')
-        except Exception:
-            pass
+        return JsonResponse({'status': 'error', 'message': 'Google account has no verified email.'}, status=401)
+    picture_claim = claims.get('picture', '')
+    google_picture = picture_claim if isinstance(picture_claim, str) else ''
 
-    if not google_email:
-        return JsonResponse({'status': 'error', 'message': 'Could not verify Firebase/Google token'}, status=401)
-
-    # 3. Find or create Django User
     created = False
     try:
         user = User.objects.get(email=google_email)
     except User.DoesNotExist:
-        base_username = google_email.split('@')[0].replace('.', '_')[:28]
+        base_username = re.sub(r'[^a-zA-Z0-9_.-]', '_', google_email.split('@')[0])[:28] or 'google_user'
         username = base_username
         counter = 1
         while User.objects.filter(username=username).exists():
-            username = f"{base_username}{counter}"
+            suffix = str(counter)
+            username = f'{base_username[:28 - len(suffix)]}{suffix}'
             counter += 1
 
         user = User.objects.create_user(
             username=username,
             email=google_email,
-            password=None,  # Google-only account
-            full_name=google_name or username,
-            role='user',
-        )
-        if google_picture:
-            user.avatar_url = google_picture
-            user.save(update_fields=['avatar_url'])
-
-        UserSettings.objects.get_or_create(user=user, defaults={'theme': 'light'})
-        created = True
-
-    if not user.is_active:
-        return JsonResponse({'status': 'error', 'message': 'This account is suspended.'}, status=403)
-
-    if google_picture and not user.avatar_url:
-        user.avatar_url = google_picture
-        user.save(update_fields=['avatar_url'])
-
-    login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-
-    UserActivityLog.objects.create(
-        user=user,
-        action='google_register' if created else 'google_login',
-        details=f'Firebase Google Sign-In ({google_email})',
-        ip_address=request.META.get('REMOTE_ADDR'),
-        user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
-    )
-
-    if created:
-        messages.success(request, f"Welcome to Zenalyze, {user.display_title}! Your account has been created via Google.")
-    else:
-        messages.success(request, f"Welcome back, {user.display_title}!")
-
-    return JsonResponse({
-        'status': 'ok',
-        'created': created,
-        'redirect': '/dashboard/',
-    })
-
-
-# ─── Google OAuth2 (Redirect Flow Fallback) ───────────────────────────────────
-
-def google_login_redirect(request):
-    """Step 1: Redirect the user to Google's OAuth2 consent screen."""
-    if not GOOGLE_CLIENT_ID:
-        messages.error(request, "Google Sign-In is not configured yet. Please ask the admin to add GOOGLE_CLIENT_ID to .env")
-        return redirect('accounts:login')
-
-    # Generate a random state token to prevent CSRF
-    state = secrets.token_urlsafe(32)
-    request.session['google_oauth_state'] = state
-    # Remember where to go after login
-    next_url = request.GET.get('next', '/dashboard/')
-    request.session['google_oauth_next'] = next_url
-
-    params = urllib.parse.urlencode({
-        'client_id':     GOOGLE_CLIENT_ID,
-        'redirect_uri':  GOOGLE_REDIRECT_URI,
-        'response_type': 'code',
-        'scope':         'openid email profile',
-        'state':         state,
-        'access_type':   'online',
-        'prompt':        'select_account',
-    })
-    return redirect(f'https://accounts.google.com/o/oauth2/v2/auth?{params}')
-
-
-def google_oauth_callback(request):
-    """Step 2: Google redirects back here with an authorization code.
-    Exchange it for tokens, verify identity, then create/log-in the user."""
-
-    # ── Security: verify state ──────────────────────────────────────────────
-    state_in_session = request.session.pop('google_oauth_state', None)
-    state_from_google = request.GET.get('state', '')
-    if not state_in_session or state_in_session != state_from_google:
-        messages.error(request, 'Google sign-in failed: invalid state. Please try again.')
-        return redirect('accounts:login')
-
-    error = request.GET.get('error')
-    if error:
-        if error == 'access_denied':
-            messages.info(request, 'Google sign-in was cancelled.')
-        else:
-            messages.error(request, f'Google sign-in error: {error}')
-        return redirect('accounts:login')
-
-    code = request.GET.get('code')
-    if not code:
-        messages.error(request, 'No authorization code received from Google.')
-        return redirect('accounts:login')
-
-    # ── Exchange code for tokens ────────────────────────────────────────────
-    try:
-        token_resp = http_requests.post(
-            'https://oauth2.googleapis.com/token',
-            data={
-                'code':          code,
-                'client_id':     GOOGLE_CLIENT_ID,
-                'client_secret': GOOGLE_CLIENT_SECRET,
-                'redirect_uri':  GOOGLE_REDIRECT_URI,
-                'grant_type':    'authorization_code',
-            },
-            timeout=10
-        )
-        token_data = token_resp.json()
-    except Exception as exc:
-        messages.error(request, f'Could not contact Google servers: {exc}')
-        return redirect('accounts:login')
-
-    if 'error' in token_data:
-        messages.error(request, f'Google token error: {token_data["error_description"]}')
-        return redirect('accounts:login')
-
-    access_token = token_data.get('access_token')
-
-    # ── Fetch the user's Google profile ─────────────────────────────────────
-    try:
-        profile_resp = http_requests.get(
-            'https://www.googleapis.com/oauth2/v2/userinfo',
-            headers={'Authorization': f'Bearer {access_token}'},
-            timeout=10
-        )
-        profile = profile_resp.json()
-    except Exception as exc:
-        messages.error(request, f'Could not fetch Google profile: {exc}')
-        return redirect('accounts:login')
-
-    google_email   = profile.get('email', '').lower()
-    google_name    = profile.get('name', '')
-    google_picture = profile.get('picture', '')
-    email_verified = profile.get('verified_email', False)
-
-    if not google_email or not email_verified:
-        messages.error(request, 'Google account has no verified email. Please use a different account.')
-        return redirect('accounts:login')
-
-    # ── Get or create Django user ────────────────────────────────────────────
-    created = False
-    try:
-        user = User.objects.get(email=google_email)
-    except User.DoesNotExist:
-        base_username = google_email.split('@')[0].replace('.', '_')[:28]
-        username = base_username
-        counter  = 1
-        while User.objects.filter(username=username).exists():
-            username = f'{base_username}{counter}'
-            counter += 1
-
-        user = User.objects.create_user(
-            username=username,
-            email=google_email,
-            password=None,      # Google-only account, no password
+            password=None,
             full_name=google_name,
             role='user',
         )
         if google_picture:
             user.avatar_url = google_picture
-        user.save()
-
-        UserSettings.objects.create(user=user, theme='light')
+            user.save(update_fields=['avatar_url'])
+        UserSettings.objects.get_or_create(user=user, defaults={'theme': 'light'})
         created = True
 
     if not user.is_active:
-        messages.error(request, 'This account is suspended. Please contact support.')
-        return redirect('accounts:login')
+        return JsonResponse({'status': 'error', 'message': 'This account is suspended. Please contact support.'}, status=403)
 
-    # ── Log in ───────────────────────────────────────────────────────────────
     login(request, user, backend='django.contrib.auth.backends.ModelBackend')
-
     UserActivityLog.objects.create(
         user=user,
         action='google_register' if created else 'google_login',
-        details=f'Google OAuth sign-in ({google_email})',
+        details='Google Identity Services sign-in',
         ip_address=request.META.get('REMOTE_ADDR'),
+        user_agent=request.META.get('HTTP_USER_AGENT', '')[:500],
     )
-
-    if created:
-        messages.success(request, f'Welcome to Zenalyze, {user.display_title}! Your account was created with Google. 🎉')
-    else:
-        messages.success(request, f'Welcome back, {user.display_title}!')
-
-    next_url = request.session.pop('google_oauth_next', '/dashboard/')
-    return redirect(next_url)
+    return JsonResponse({
+        'status': 'ok',
+        'created': created,
+        'message': 'Account created successfully.' if created else 'Signed in successfully.',
+        'redirect': '/dashboard/',
+    })

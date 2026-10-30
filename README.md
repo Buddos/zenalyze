@@ -150,6 +150,8 @@ cp .env.example .env
 # Edit .env with your credentials
 ```
 
+For Google sign-in and sign-up, set only `GOOGLE_CLIENT_ID` in `.env` and in Vercel's project environment variables. In Google Cloud Console, add each site origin under the OAuth 2.0 Client's **Authorized JavaScript origins**, including `http://localhost:8000` for local development and the exact `https://` production origin. This app uses Google Identity Services and verifies the returned ID token server-side; it does not use Firebase or require a Google client secret or OAuth redirect URI. First-time Google sign-in creates a Django account and signs the user in; later sign-ins use that account.
+
 ### 5. Run migrations
 
 ```bash
@@ -184,7 +186,7 @@ Visit **http://localhost:8000** 🎉
 
 ## Shared account data and dashboard refresh
 
-Dashboard pages read their current data from the configured database on each request. To see the same account data across Vercel and other devices, configure them to use the same Supabase `DATABASE_URL`. Open dashboard pages refresh from that database every 30 seconds when idle; refresh is deferred while a form has unsaved edits, media is playing, a modal is open, or an embedded assistant is active.
+Dashboard pages read their current data from the configured database on each request. To see the same account data across Vercel and other devices, configure them to use the same Supabase `DATABASE_URL`. Open dashboard pages do not refresh automatically; users see the latest saved data when they navigate to a page or choose to refresh manually. This keeps the page stable and avoids disrupting unsaved work.
 
 ## ▶️ Running the Application
 

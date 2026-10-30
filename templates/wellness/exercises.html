@@ -96,11 +96,18 @@
         <div class="col-md-6 col-lg-4" id="practice-{{ ex.id }}">
             <div class="exercise-card">
                 <div>
-                    {% if ex.practice_media.thumbnail or ex.thumbnail_file or ex.thumbnail_image %}
-                    <div class="mb-3">
-                        <img src="{% if ex.practice_media.thumbnail %}{{ ex.practice_media.thumbnail.url }}{% elif ex.thumbnail_file %}{{ ex.thumbnail_file.url }}{% else %}{{ ex.thumbnail_image }}{% endif %}" alt="{{ ex.title }} thumbnail" class="img-fluid rounded-3 w-100" style="max-height: 220px; object-fit: cover;">
-                    </div>
+                    {% if ex.category == 'breathing' %}
+                    {% static 'images/practices/breathing.svg' as fallback_image %}
+                    {% elif ex.category == 'yoga' or ex.category == 'yoga_flow' %}
+                    {% static 'images/practices/yoga.svg' as fallback_image %}
+                    {% elif ex.category == 'grounding' or ex.category == 'mindfulness' %}
+                    {% static 'images/practices/grounding.svg' as fallback_image %}
+                    {% else %}
+                    {% static 'images/practices/meditation.svg' as fallback_image %}
                     {% endif %}
+                    <div class="mb-3">
+                        <img src="{% if ex.practice_media and ex.practice_media.processing_status == 'ready' and ex.practice_media.thumbnail %}{{ ex.practice_media.thumbnail.url }}{% elif ex.practice_media and ex.practice_media.processing_status == 'ready' and ex.practice_media.asset_type == 'image' and ex.practice_media.file %}{{ ex.practice_media.file.url }}{% elif ex.thumbnail_file %}{{ ex.thumbnail_file.url }}{% elif ex.thumbnail_image %}{{ ex.thumbnail_image }}{% else %}{{ fallback_image }}{% endif %}" data-fallback="{{ fallback_image }}" onerror="this.onerror=null;this.src=this.dataset.fallback;" alt="{{ ex.title }} thumbnail" class="img-fluid rounded-3 w-100" style="max-height: 220px; object-fit: cover;">
+                    </div>
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <span class="badge bg-primary bg-opacity-10 text-primary fw-bold text-uppercase px-3 py-2 rounded-pill small">
                             {{ ex.get_category_display }}
@@ -112,18 +119,18 @@
                     <h5 class="fw-bold mb-2" style="color: var(--text-primary);">{{ ex.title }}</h5>
                     <p class="text-secondary small mb-3">{{ ex.description }}</p>
 
-                    {% if ex.practice_media.asset_type == 'video' %}
-                    <video id="practice-media-{{ ex.id }}" data-practice-player data-practice-id="{{ ex.id }}" data-session-id="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.id }}{% endif %}" data-progress-seconds="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.progress_seconds }}{% else %}0{% endif %}" class="w-100 rounded-3 mb-3" controls preload="none" {% if ex.practice_media.thumbnail %}poster="{{ ex.practice_media.thumbnail.url }}"{% endif %}>
+                    {% if ex.practice_media and ex.practice_media.asset_type == 'video' and ex.practice_media.processing_status == 'ready' and ex.practice_media.file %}
+                    <video id="practice-media-{{ ex.id }}" data-practice-player data-practice-id="{{ ex.id }}" data-session-id="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.id }}{% endif %}" data-progress-seconds="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.progress_seconds }}{% else %}0{% endif %}" class="w-100 rounded-3 mb-3" controls preload="metadata" playsinline poster="{% if ex.practice_media.thumbnail %}{{ ex.practice_media.thumbnail.url }}{% else %}{{ fallback_image }}{% endif %}">
                         <source src="{{ ex.practice_media.file.url }}">
                         Your browser does not support the video element.
                     </video>
-                    {% elif ex.practice_media.asset_type == 'audio' %}
-                    <audio id="practice-media-{{ ex.id }}" data-practice-player data-practice-id="{{ ex.id }}" data-session-id="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.id }}{% endif %}" data-progress-seconds="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.progress_seconds }}{% else %}0{% endif %}" class="w-100 mb-3" controls preload="none">
+                    {% elif ex.practice_media and ex.practice_media.asset_type == 'audio' and ex.practice_media.processing_status == 'ready' and ex.practice_media.file %}
+                    <audio id="practice-media-{{ ex.id }}" data-practice-player data-practice-id="{{ ex.id }}" data-session-id="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.id }}{% endif %}" data-progress-seconds="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.progress_seconds }}{% else %}0{% endif %}" class="w-100 mb-3" controls preload="metadata">
                         <source src="{{ ex.practice_media.file.url }}">
                         Your browser does not support the audio element.
                     </audio>
                     {% elif ex.video_file %}
-                    <video id="practice-media-{{ ex.id }}" data-practice-player data-practice-id="{{ ex.id }}" data-session-id="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.id }}{% endif %}" data-progress-seconds="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.progress_seconds }}{% else %}0{% endif %}" class="w-100 rounded-3 mb-3" controls preload="metadata" {% if ex.thumbnail_file %}poster="{{ ex.thumbnail_file.url }}"{% endif %}>
+                    <video id="practice-media-{{ ex.id }}" data-practice-player data-practice-id="{{ ex.id }}" data-session-id="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.id }}{% endif %}" data-progress-seconds="{% if continue_session and continue_session.exercise_id == ex.id %}{{ continue_session.progress_seconds }}{% else %}0{% endif %}" class="w-100 rounded-3 mb-3" controls preload="metadata" playsinline poster="{% if ex.thumbnail_file %}{{ ex.thumbnail_file.url }}{% else %}{{ fallback_image }}{% endif %}">
                         <source src="{{ ex.video_file.url }}">
                         Your browser does not support the video element.
                     </video>
