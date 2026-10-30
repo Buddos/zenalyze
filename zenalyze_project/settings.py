@@ -171,6 +171,7 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
+    ('uploads', BASE_DIR / 'uploads'),
 ]
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 

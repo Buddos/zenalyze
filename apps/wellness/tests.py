@@ -2,12 +2,14 @@ from decimal import Decimal
 from datetime import datetime, timedelta
 
 from django.contrib.auth import get_user_model
+from django.contrib.staticfiles import finders
 from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
 from .models import Exercise, FinancialEntry
 from apps.community.models import MediaAsset
+from apps.core.management.commands.seed_zenalyze import Command as SeedZenalyzeCommand
 
 
 User = get_user_model()
@@ -42,6 +44,22 @@ class PracticeMediaRenderingTests(TestCase):
         self.assertContains(response, '/media/uploads/exercises/videos/meditation.mp4')
         self.assertContains(response, '/media/uploads/exercises/thumbnails/meditation.jpg')
 
+    def test_seeded_breathing_media_is_available_from_staticfiles(self):
+        Exercise.objects.create(
+            title='Static guided breathing',
+            category='breathing',
+            video_type='file',
+            video_url='/static/uploads/exercises/videos/exercise_6a09f6bd75a97.mp4',
+            thumbnail_image='/static/uploads/exercises/thumbnails/thumb_6a0a01df4eefb.jpeg',
+            status='published',
+        )
+
+        response = self.client.get(reverse('wellness:exercises'))
+
+        self.assertTrue(finders.find('uploads/exercises/videos/exercise_6a09f6bd75a97.mp4'))
+        self.assertContains(response, '/static/uploads/exercises/videos/exercise_6a09f6bd75a97.mp4')
+        self.assertContains(response, '/static/uploads/exercises/thumbnails/thumb_6a0a01df4eefb.jpeg')
+
     def test_practice_without_a_thumbnail_uses_local_category_artwork(self):
         Exercise.objects.create(
             title='Quiet meditation',
@@ -54,6 +72,32 @@ class PracticeMediaRenderingTests(TestCase):
 
         self.assertContains(response, '/static/images/practices/meditation.svg')
         self.assertContains(response, 'data-fallback="/static/images/practices/meditation.svg"')
+
+    def test_seed_cleanup_detaches_breathing_media_from_meditation(self):
+        asset = MediaAsset.objects.create(
+            asset_type='video',
+            file='uploads/exercises/videos/breathing.mp4',
+            thumbnail='uploads/exercises/thumbnails/breathing.webp',
+            processing_status='ready',
+        )
+        exercise = Exercise.objects.create(
+            title='Mindfulness Body Scan Meditation',
+            category='meditation',
+            video_file='uploads/exercises/videos/breathing.mp4',
+            thumbnail_file='uploads/exercises/thumbnails/breathing.webp',
+            media_asset=asset,
+        )
+
+        SeedZenalyzeCommand().detach_legacy_breathing_media(
+            exercise.title,
+            'uploads/exercises/videos/breathing.mp4',
+            'uploads/exercises/thumbnails/breathing.webp',
+        )
+
+        exercise.refresh_from_db()
+        self.assertFalse(exercise.video_file)
+        self.assertFalse(exercise.thumbnail_file)
+        self.assertIsNone(exercise.media_asset_id)
 
 
 class FinancialPlannerTests(TestCase):

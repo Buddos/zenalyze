@@ -11,6 +11,7 @@
     let runningPageScripts = true;
     let navigationRequest = null;
     let activeForm = null;
+    let currentViewUrl = window.location.href;
 
     window.setInterval = function (callback, delay, ...args) {
         const timer = nativeSetInterval(callback, delay, ...args);
@@ -140,7 +141,7 @@
         nativeSetTimeout(() => notice.remove(), 6000);
     }
 
-    function applyPage(nextDocument, nextUrl, historyMode) {
+    function applyPage(nextDocument, nextUrl, preservePosition) {
         const currentWrapper = document.querySelector('.dashboard-wrapper');
         const nextWrapper = nextDocument.querySelector('.dashboard-wrapper');
         const currentSidebar = currentWrapper && currentWrapper.querySelector('.sidebar');
@@ -149,6 +150,12 @@
         const nextMain = nextWrapper && nextWrapper.querySelector('.main-content');
         if (!currentSidebar || !nextSidebar || !currentMain || !nextMain) return false;
 
+        currentViewUrl = nextUrl;
+        if (currentMain.innerHTML === nextMain.innerHTML && currentSidebar.innerHTML === nextSidebar.innerHTML) {
+            return true;
+        }
+
+        const scrollPosition = window.scrollY;
         stopCurrentPageWork();
         replaceMarkedNodes(
             document,
@@ -169,20 +176,13 @@
         document.title = nextDocument.title;
         document.documentElement.dataset.theme = nextDocument.documentElement.dataset.theme || 'light';
         syncMessages(nextDocument);
-
-        if (historyMode === 'push') {
-            window.history.pushState({}, '', nextUrl);
-        } else if (historyMode === 'replace') {
-            window.history.replaceState({}, '', nextUrl);
-        }
-
         document.body.style.overflow = '';
         runPageScripts(nextScripts);
-        window.scrollTo(0, 0);
+        window.scrollTo(0, preservePosition ? scrollPosition : 0);
         return true;
     }
 
-    async function fetchPage(url, historyMode = 'push', options = {}) {
+    async function fetchPage(url, options = {}) {
         if (navigationRequest) navigationRequest.abort();
         navigationRequest = new AbortController();
         const request = navigationRequest;
@@ -201,8 +201,10 @@
             });
             const html = await response.text();
             const nextDocument = new DOMParser().parseFromString(html, 'text/html');
-            if (!response.ok || !applyPage(nextDocument, response.url, historyMode)) {
-                if (options.form) {
+            if (!response.ok) {
+                showRequestError('The update could not be completed. Your current page has been kept.');
+            } else if (!applyPage(nextDocument, response.url, options.preservePosition)) {
+                if (options.form || options.silent) {
                     showRequestError('The update could not be completed. Your current page has been kept.');
                 } else {
                     window.location.assign(response.url);
@@ -211,7 +213,9 @@
         } catch (error) {
             if (error.name !== 'AbortError') {
                 console.error('Background page update failed.', error);
-                showRequestError('Could not update this page. Check your connection and try again.');
+                if (!options.silent) {
+                    showRequestError('Could not update this page. Check your connection and try again.');
+                }
             }
         } finally {
             if (navigationRequest === request) navigationRequest = null;
@@ -228,8 +232,22 @@
         const link = clickTarget && clickTarget.closest('a[href]');
         if (!link || link.target || link.hasAttribute('download') || link.rel === 'external' || link.dataset.noSoftNavigation !== undefined) return;
 
-        const url = new URL(link.href, window.location.href);
-        if (url.origin !== window.location.origin || url.pathname === window.location.pathname && url.hash) return;
+        const url = new URL(link.getAttribute('href'), currentViewUrl);
+        const currentUrl = new URL(currentViewUrl);
+        if (url.origin !== window.location.origin) return;
+        if (url.pathname === currentUrl.pathname && url.hash) {
+            event.preventDefault();
+            let targetId;
+            try {
+                targetId = decodeURIComponent(url.hash.slice(1));
+            } catch (_) {
+                targetId = url.hash.slice(1);
+            }
+            const target = targetId ? document.getElementById(targetId) : null;
+            if (target) target.scrollIntoView({ behavior: 'smooth' });
+            else if (!targetId) window.scrollTo({ top: 0, behavior: 'smooth' });
+            return;
+        }
         if (!/^https?:$/.test(url.protocol)) return;
 
         event.preventDefault();
@@ -245,7 +263,7 @@
         activeForm = form;
         form.setAttribute('aria-busy', 'true');
         const method = (form.method || 'GET').toUpperCase();
-        const action = new URL(form.action || window.location.href, window.location.href);
+        const action = new URL(form.getAttribute('action') || currentViewUrl, currentViewUrl);
         const options = { method, form };
         if (method === 'GET') {
             new FormData(form).forEach((value, key) => {
@@ -255,9 +273,40 @@
         } else {
             options.body = new FormData(form);
         }
-        fetchPage(action.href, 'replace', options);
+        fetchPage(action.href, options);
     });
 
-    nativeWindowAdd('popstate', () => fetchPage(window.location.href, 'none'));
+    function canRefreshPage() {
+        if (navigationRequest || activeForm) return false;
+        const activeElement = document.activeElement;
+        if (activeElement && activeElement.closest('.main-content') &&
+            activeElement.matches('input, textarea, select, [contenteditable="true"]')) return false;
+        if (document.querySelector('.modal.show')) return false;
+        const hasUnsavedInput = [...document.querySelectorAll('.main-content input, .main-content textarea, .main-content select')]
+            .some((control) => {
+                if (control.type === 'checkbox' || control.type === 'radio') {
+                    return control.checked !== control.defaultChecked;
+                }
+                if (control.tagName === 'SELECT') {
+                    return [...control.options].some((option) => option.selected !== option.defaultSelected);
+                }
+                return control.type !== 'hidden' && control.type !== 'submit' &&
+                    control.type !== 'button' && control.type !== 'reset' &&
+                    control.value !== control.defaultValue;
+            });
+        if (hasUnsavedInput) return false;
+        return ![...document.querySelectorAll('.main-content video, .main-content audio')]
+            .some((player) => !player.paused && !player.ended || player.currentTime > 0 && !player.ended);
+    }
+
+    function refreshCurrentPage() {
+        if (document.visibilityState !== 'visible' || !canRefreshPage()) return;
+        fetchPage(currentViewUrl, { preservePosition: true, silent: true });
+    }
+
+    nativeSetInterval(refreshCurrentPage, 30000);
+    nativeDocumentAdd('visibilitychange', () => {
+        if (document.visibilityState === 'visible') refreshCurrentPage();
+    });
     nativeSetTimeout(() => { runningPageScripts = false; }, 0);
 })();

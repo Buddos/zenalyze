@@ -186,7 +186,9 @@ Visit **http://localhost:8000** 🎉
 
 ## Shared account data and dashboard refresh
 
-Dashboard pages read their current data from the configured database on each request. To see the same account data across Vercel and other devices, configure them to use the same Supabase `DATABASE_URL`. Open dashboard pages do not refresh automatically; users see the latest saved data when they navigate to a page or choose to refresh manually. This keeps the page stable and avoids disrupting unsaved work.
+Dashboard pages read their current data from the configured database on each request. To see the same account data across Vercel and other devices, configure them to use the same Supabase `DATABASE_URL`. Open dashboard views check for updates every 30 seconds and update in place without a document reload or address-bar change. A refresh is deferred while a form has unsaved edits, a modal is open, or practice media is playing or paused mid-session. Since the address bar stays fixed by design, browser Back, bookmarks, and copied URLs do not represent the currently selected in-app view.
+
+The bundled breathing-practice videos and thumbnails are served through Django static files so they can be collected for deployment. User-uploaded media still uses `MEDIA_ROOT` and needs persistent object storage in production.
 
 ## ▶️ Running the Application
 

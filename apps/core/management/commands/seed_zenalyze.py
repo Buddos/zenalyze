@@ -39,12 +39,15 @@ class Command(BaseCommand):
         if video_path.exists():
             rel_video = str(Path('uploads/exercises/videos') / video_name)
             exercise.video_file = rel_video
+            exercise.video_url = f'/static/{rel_video}'
+            exercise.video_type = 'file'
             exercise.status = 'published'
             exercise.is_active = True
             exercise.published_at = timezone.now()
         if thumbnail_path.exists():
             rel_thumb = str(Path('uploads/exercises/thumbnails') / thumbnail_name)
             exercise.thumbnail_file = rel_thumb
+            exercise.thumbnail_image = f'/static/{rel_thumb}'
 
         if rel_video:
             media_asset, _ = MediaAsset.objects.get_or_create(
@@ -60,8 +63,30 @@ class Command(BaseCommand):
                 media_asset.save(update_fields=['thumbnail'])
             exercise.media_asset = media_asset
 
-        exercise.thumbnail_image = ''
         exercise.save()
+
+    def detach_legacy_breathing_media(self, exercise_title, legacy_video, legacy_thumbnail):
+        exercise = Exercise.objects.filter(title=exercise_title).first()
+        if not exercise:
+            return
+
+        video_name = Path(legacy_video).name
+        thumbnail_name = Path(legacy_thumbnail).name
+        changed_fields = []
+        if exercise.video_file and Path(exercise.video_file.name).name == video_name:
+            exercise.video_file = ''
+            changed_fields.append('video_file')
+        if exercise.media_asset_id and Path(exercise.media_asset.file.name).name == video_name:
+            exercise.media_asset = None
+            changed_fields.append('media_asset')
+        if exercise.thumbnail_file and Path(exercise.thumbnail_file.name).name == thumbnail_name:
+            exercise.thumbnail_file = ''
+            changed_fields.append('thumbnail_file')
+        if exercise.thumbnail_image and Path(exercise.thumbnail_image).name == thumbnail_name:
+            exercise.thumbnail_image = ''
+            changed_fields.append('thumbnail_image')
+        if changed_fields:
+            exercise.save(update_fields=changed_fields + ['updated_at'])
 
     def handle(self, *args, **options):
         self.stdout.write(self.style.NOTICE('Starting Zenalyze database seeding...'))
@@ -185,6 +210,8 @@ class Command(BaseCommand):
                 'uploads/exercises/videos/exercise_6a0a02d9c47f0.mp4',
                 'uploads/exercises/thumbnails/thumb_6a0a02d9c4a0c.jpeg',
             ),
+        }
+        legacy_meditation_media = {
             'Mindfulness Body Scan Meditation': (
                 'uploads/exercises/videos/exercise_6a09f6bd75a97.mp4',
                 'uploads/exercises/thumbnails/thumb_6a0a028907a52.webp',
@@ -198,6 +225,8 @@ class Command(BaseCommand):
             exercise, _ = Exercise.objects.get_or_create(title=ex['title'], defaults=ex)
             if ex['title'] in media_mapping:
                 self.attach_local_media(ex['title'], *media_mapping[ex['title']])
+            elif ex['title'] in legacy_meditation_media:
+                self.detach_legacy_breathing_media(ex['title'], *legacy_meditation_media[ex['title']])
         self.stdout.write(self.style.SUCCESS(f'Seeded {len(exercises_data)} exercises.'))
 
         # 4. Seed Therapists

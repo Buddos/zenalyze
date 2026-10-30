@@ -1,0 +1,21 @@
+# Environment files
+.env
+.env.*
+
+# Allow example environment file
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Django
+db.sqlite3
+staticfiles/
+media/
+
+# IDE
+.vscode/
+.idea/
